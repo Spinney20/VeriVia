@@ -45,6 +45,121 @@
           "checklist": []
         }
       ]
+    },
+    {
+      "id": 3,
+      "title": "test",
+      "date": "04.08.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "complete",
+              "subTasks": []
+            },
+            {
+              "name": "Acorduri de subcontractare",
+              "status": "complete",
+              "subTasks": [
+                {
+                  "name": "Bomaco",
+                  "status": "complete",
+                  "subTasks": []
+                },
+                {
+                  "name": "Radu Luca Vision",
+                  "status": "complete",
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Împuterniciri",
+              "status": "complete",
+              "subTasks": [
+                {
+                  "name": "Bomaco",
+                  "status": "complete",
+                  "subTasks": []
+                },
+                {
+                  "name": "Gigel",
+                  "status": "complete",
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Declarație privind conflictul de interese",
+              "status": "complete",
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "complete",
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "complete",
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": []
+        },
+        {
+          "name": "Tehnic",
+          "checklist": []
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": []
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Dambovita",
+      "date": "04.29.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "complete",
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "complete",
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "complete",
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": []
+        },
+        {
+          "name": "Tehnic",
+          "checklist": []
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": []
+        }
+      ]
     }
   ]
 }
