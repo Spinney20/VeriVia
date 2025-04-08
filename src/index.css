@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Imagine de fundal */
+body {
+    background-image: url('./images/Viarom_extins.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+}
+
+/* Container principal */
+.AppContainer {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Panoul din dreapta (400px, 80vh) */
+.CategoriesPanel {
+  width: 400px;
+  height: 80vh;
+  overflow-y: auto;
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  margin-right: 20px;
+  padding: 16px;
+}

@@ -1,0 +1,30 @@
+{
+    "name": "verivia",
+    "version": "1.0.0",
+    "description": "VeriVia - Tauri + React + SQLite App",
+    "author": "Andrei Teodor Dobre",
+    "license": "MIT",
+    "scripts": {
+        "dev:frontend": "vite --port=3000",
+        "dev:tauri": "tauri dev",
+        "build:frontend": "vite build",
+        "build": "tauri build"
+    },
+    "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.0",
+        "@mui/material": "^7.0.1",
+        "@mui/x-tree-view": "^7.28.1",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0"
+    },
+    "devDependencies": {
+        "@tauri-apps/api": "^1.3.0",
+        "@tauri-apps/cli": "^1.3.0",
+        "@vitejs/plugin-react": "^4.3.4",
+        "autoprefixer": "^10.4.14",
+        "postcss": "^8.4.21",
+        "tailwindcss": "^3.3.0",
+        "vite": "^4.2.1"
+    }
+}

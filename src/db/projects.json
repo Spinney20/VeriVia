@@ -1,0 +1,50 @@
+{
+  "projects": [
+    {
+      "id": 1,
+      "title": "DJ112D",
+      "date": "04.01.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": []
+        },
+        {
+          "name": "Financiar",
+          "checklist": []
+        },
+        {
+          "name": "Tehnic",
+          "checklist": []
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": []
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Drumul Sfantul Ioan Cluj-Napoca",
+      "date": "04.28.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": []
+        },
+        {
+          "name": "Financiar",
+          "checklist": []
+        },
+        {
+          "name": "Tehnic",
+          "checklist": []
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": []
+        }
+      ]
+    }
+  ]
+}
