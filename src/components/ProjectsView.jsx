@@ -8,10 +8,11 @@ import Button from "@mui/material/Button";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import TextField from "@mui/material/TextField";
 
-// Importă componentele pentru modale (Eligibilitate, Financiar și PTE/PCCVI)
+// Importă componentele pentru modale
 import EligibilityModal from "./EligibilityModal";
 import FinanciarModal from "./FinanciarModal";
-import PteModal from "./PteModal"; // Wrapper pentru categoria PTE/PCCVI
+import PteModal from "./PteModal";
+import TehnicModal from "./TehnicModal"; // <-- IMPORT NOU pentru modalul Tehnic
 
 export default function ProjectsView() {
   const [expandedItems, setExpandedItems] = useState([]);
@@ -24,9 +25,12 @@ export default function ProjectsView() {
 
   // State pentru proiectul selectat
   const [selectedProject, setSelectedProject] = useState(null);
+
+  // State-urile pentru cele 4 modale diferite
   const [showEligibilityModal, setShowEligibilityModal] = useState(false);
   const [showFinanciarModal, setShowFinanciarModal] = useState(false);
   const [showPteModal, setShowPteModal] = useState(false);
+  const [showTehnicModal, setShowTehnicModal] = useState(false); // <-- NOU
 
   async function fetchDbData() {
     try {
@@ -41,7 +45,7 @@ export default function ProjectsView() {
     fetchDbData();
   }, []);
 
-  // Construiește arborele pentru RichTreeView (fără checklist-uri, subnodurile sunt []
+  // Construiește arborele pentru RichTreeView
   const treeItems = dbData.projects.map((proj) => ({
     id: `proj-${proj.id}`,
     label: `${proj.date} - ${proj.title}`,
@@ -73,35 +77,49 @@ export default function ProjectsView() {
 
   // La selectarea unui nod în arbore
   const handleItemSelect = (_, itemId) => {
-    console.log("Select item:", itemId);
+    // Ex: itemId = "cat-<projId>-<catIndex>"
     if (itemId.startsWith("cat-")) {
       const parts = itemId.split("-");
       if (parts.length >= 3) {
         const projId = parseInt(parts[1], 10);
         const catIndex = parseInt(parts[2], 10);
+
         const proj = dbData.projects.find((p) => p.id === projId);
         if (proj && proj.categories[catIndex]) {
           const catName = proj.categories[catIndex].name.toLowerCase();
+
+          // Eligibilitate
           if (catName === "eligibilitate") {
             setSelectedProject(proj);
             setShowEligibilityModal(true);
             return;
-          } else if (catName === "financiar") {
+          }
+          // Financiar
+          else if (catName === "financiar") {
             setSelectedProject(proj);
             setShowFinanciarModal(true);
             return;
-          } else if (catName === "pte/pccvi") {
+          }
+          // PTE/PCCVI
+          else if (catName === "pte/pccvi") {
             setSelectedProject(proj);
             setShowPteModal(true);
+            return;
+          }
+          // Tehnic (cazul NOU)
+          else if (catName === "tehnic") {
+            setSelectedProject(proj);
+            setShowTehnicModal(true);
             return;
           }
         }
       }
     }
-    // Alte acțiuni pentru nodurile de proiect sau alte categorii
+    // Dacă e un nod de tip "project" (fără cat-), sau altă categorie,
+    // poți pune altă logică aici, dacă e nevoie.
   };
 
-  // Modal functions pentru "Add Project"
+  // Modal "Add Project"
   const handleOpenAddModal = () => {
     setShowModal(true);
   };
@@ -130,7 +148,7 @@ export default function ProjectsView() {
     }
   };
 
-  // Funcție care primește checklist-urile actualizate din modalul de eligibilitate
+  // Confirmare modif. ELIGIBILITATE
   const handleEligibilityConfirm = async (updatedTasks) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
@@ -150,14 +168,14 @@ export default function ProjectsView() {
       await invoke("save_projects", {
         new_data: JSON.stringify(updatedDbData, null, 2)
       });
-      alert("Modificări salvate cu succes!");
+      alert("Modificări salvate cu succes (Eligibilitate)!");
       setDbData(updatedDbData);
     } catch (err) {
-      console.error("Eroare la salvarea modificărilor:", err);
+      console.error("Eroare la salvarea modificărilor (Eligibilitate):", err);
     }
   };
 
-  // Funcție similară pentru categoria "Financiar"
+  // Confirmare modif. FINANCIAR
   const handleFinancialConfirm = async (updatedTasks) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
@@ -184,7 +202,7 @@ export default function ProjectsView() {
     }
   };
 
-  // Funcție similară pentru categoria "PTE/PCCVI"
+  // Confirmare modif. PTE/PCCVI
   const handlePteConfirm = async (updatedTasks) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
@@ -211,6 +229,33 @@ export default function ProjectsView() {
     }
   };
 
+  // Confirmare modif. TEHNIC (NOU)
+  const handleTehnicConfirm = async (updatedTasks) => {
+    if (!selectedProject) return;
+    const updatedProjects = dbData.projects.map((proj) => {
+      if (proj.id === selectedProject.id) {
+        const updatedCategories = proj.categories.map((cat) => {
+          if (cat.name.toLowerCase() === "tehnic") {
+            return { ...cat, checklist: updatedTasks };
+          }
+          return cat;
+        });
+        return { ...proj, categories: updatedCategories };
+      }
+      return proj;
+    });
+    const updatedDbData = { projects: updatedProjects };
+    try {
+      await invoke("save_projects", {
+        new_data: JSON.stringify(updatedDbData, null, 2)
+      });
+      alert("Modificări tehnice salvate cu succes!");
+      setDbData(updatedDbData);
+    } catch (err) {
+      console.error("Eroare la salvarea modificărilor tehnice:", err);
+    }
+  };
+
   return (
     <Stack spacing={2} sx={{ backgroundColor: "transparent" }}>
       {/* Butonul de deschidere modal "Add Project" */}
@@ -218,10 +263,12 @@ export default function ProjectsView() {
         ADAUGĂ PROIECT
       </Button>
 
+      {/* Buton de expand/collapse all */}
       <Button variant="contained" onClick={handleExpandClick}>
         {expandedItems.length === 0 ? "EXPAND ALL" : "COLLAPSE ALL"}
       </Button>
 
+      {/* Arborele cu proiecte și categorii */}
       <Box sx={{ minWidth: 250, backgroundColor: "transparent" }}>
         <RichTreeView
           sx={{
@@ -330,6 +377,21 @@ export default function ProjectsView() {
           initialTasks={
             selectedProject.categories.find(
               (cat) => cat.name.toLowerCase() === "pte/pccvi"
+            )?.checklist
+          }
+        />
+      )}
+
+      {/* Modal "Tehnic" (NOU) */}
+      {showTehnicModal && selectedProject && (
+        <TehnicModal
+          open={showTehnicModal}
+          onClose={() => setShowTehnicModal(false)}
+          onConfirm={handleTehnicConfirm}
+          projectTitle={selectedProject.title}
+          initialTasks={
+            selectedProject.categories.find(
+              (cat) => cat.name.toLowerCase() === "tehnic"
             )?.checklist
           }
         />

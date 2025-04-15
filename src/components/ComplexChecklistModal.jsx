@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  LinearProgress
+  LinearProgress,
 } from "@mui/material";
 
 import CloseIcon from "@mui/icons-material/Close";
@@ -32,7 +32,9 @@ export default function ComplexChecklistModal({
   onConfirm,
   projectTitle = "Titlu Proiect",
   userName = "NumeUtilizator",
-  categoryName = "Eligibilitate" // <-- parametru NOU, default
+  categoryName = "Eligibilitate", // implicit categoria din DB
+  initialTasks = [],              // PROP nou: set de taskuri preluate (ex. din Excel)
+  children,                     // banner / conținut suplimentar
 }) {
   // -----------------------------------------------------
   // HOOKS & STATE
@@ -62,20 +64,19 @@ export default function ComplexChecklistModal({
   // -----------------------------------------------------
   // 0) HELPER: getParentCheckboxState
   // -----------------------------------------------------
-  // Calculează starea checkbox-ului părinte (checked, indeterminate)
   const getParentCheckboxState = (item) => {
     const hasSub = item.subTasks && item.subTasks.length > 0;
     if (!hasSub) {
       return {
         checked: item.status === "complete",
-        indeterminate: false
+        indeterminate: false,
       };
     }
     const allChecked = item.subTasks.every((st) => st.status === "complete");
     const someChecked = item.subTasks.some((st) => st.status === "complete");
     return {
       checked: allChecked,
-      indeterminate: someChecked && !allChecked
+      indeterminate: someChecked && !allChecked,
     };
   };
 
@@ -85,6 +86,7 @@ export default function ComplexChecklistModal({
   useEffect(() => {
     async function fetchData() {
       try {
+        // Încărcăm DB-ul complet, pentru a putea face salvări ulterioare.
         const data = await invoke("load_projects");
         setDbData(data);
 
@@ -93,13 +95,19 @@ export default function ComplexChecklistModal({
         );
         if (!foundProject) return;
 
-        // AICI: căutăm categoria după categoryName
+        // Căutăm categoria după categoryName
         const foundCategory = foundProject.categories?.find(
           (cat) => cat.name === categoryName
         );
         if (!foundCategory) return;
 
-        setItems(foundCategory.checklist || []);
+        // Dacă prop-ul initialTasks a fost transmis și nu este gol, se folosește el,
+        // altfel se folosește checklist-ul din DB.
+        setItems(
+          initialTasks && initialTasks.length > 0
+            ? initialTasks
+            : foundCategory.checklist || []
+        );
         setAuditLog([]); // Resetăm log la deschidere
       } catch (error) {
         console.error("Eroare la încărcarea proiectelor:", error);
@@ -113,7 +121,7 @@ export default function ComplexChecklistModal({
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [open, projectTitle, categoryName]);
+  }, [open, projectTitle, categoryName, initialTasks]);
 
   // -----------------------------------------------------
   // 2) Interceptare închidere (pentru confirmare)
@@ -161,14 +169,12 @@ export default function ComplexChecklistModal({
       const actionText = checked ? "Checked parent" : "Unchecked parent";
       addAuditLog(itemIndex, null, actionText);
 
-      // Marchează subtask-urile (dacă există) la complete/incomplete
       if (task.subTasks && task.subTasks.length > 0) {
         task.subTasks = task.subTasks.map((sub) => ({
           ...sub,
-          status: checked ? "complete" : "incomplete"
+          status: checked ? "complete" : "incomplete",
         }));
       }
-      // Starea părintelui
       task.status = checked ? "complete" : "incomplete";
       newItems[itemIndex] = task;
       return newItems;
@@ -189,7 +195,6 @@ export default function ComplexChecklistModal({
         const actionText = checked ? "Checked subtask" : "Unchecked subtask";
         addAuditLog(itemIndex, subIndex, actionText);
 
-        // Recalc părinte
         const allChecked = task.subTasks.every((st) => st.status === "complete");
         task.status = allChecked ? "complete" : "incomplete";
       }
@@ -208,7 +213,7 @@ export default function ComplexChecklistModal({
     const newItem = {
       name: newMainTask,
       status: "incomplete",
-      subTasks: []
+      subTasks: [],
     };
     setItems((prev) => [...prev, newItem]);
     setNewMainTask("");
@@ -229,7 +234,7 @@ export default function ComplexChecklistModal({
       task.subTasks.push({
         name: newSubtask,
         status: "incomplete",
-        subTasks: []
+        subTasks: [],
       });
       newItems[itemIndex] = task;
       return newItems;
@@ -330,7 +335,7 @@ export default function ComplexChecklistModal({
         newItems[itemIndex].notes.push({
           date: new Date().toLocaleString(),
           user: userName,
-          text: notesValue
+          text: notesValue,
         });
       } else {
         if (!("notes" in newItems[itemIndex].subTasks[subIndex])) {
@@ -339,7 +344,7 @@ export default function ComplexChecklistModal({
         newItems[itemIndex].subTasks[subIndex].notes.push({
           date: new Date().toLocaleString(),
           user: userName,
-          text: notesValue
+          text: notesValue,
         });
       }
       return newItems;
@@ -358,7 +363,7 @@ export default function ComplexChecklistModal({
       user: userName,
       itemIndex,
       subIndex,
-      action
+      action,
     };
     setAuditLog((prev) => [...prev, entry]);
   };
@@ -367,7 +372,10 @@ export default function ComplexChecklistModal({
   // 8) Salvare finală
   // -----------------------------------------------------
   const handleSave = async () => {
-    if (!dbData) return;
+    if (!dbData) {
+      console.error("Nu s-au încărcat datele din DB încă.");
+      return;
+    }
     const updatedDb = { ...dbData };
 
     const projectIndex = updatedDb.projects?.findIndex(
@@ -378,7 +386,7 @@ export default function ComplexChecklistModal({
       return;
     }
 
-    // AICI: updatăm checklist-ul în funcție de categoryName
+    // Updatăm checklist-ul la categoria specificată (ex: "Tehnic" sau altceva)
     const categoryIndex =
       updatedDb.projects[projectIndex].categories?.findIndex(
         (c) => c.name === categoryName
@@ -388,11 +396,12 @@ export default function ComplexChecklistModal({
       return;
     }
 
-    updatedDb.projects[projectIndex].categories[categoryIndex].checklist = items;
+    updatedDb.projects[projectIndex].categories[categoryIndex].checklist =
+      items;
 
     try {
       await invoke("save_projects", {
-        newData: JSON.stringify(updatedDb, null, 2)
+        newData: JSON.stringify(updatedDb, null, 2),
       });
       console.log("Date salvate cu succes în JSON.");
       setHasUnsavedChanges(false);
@@ -428,7 +437,7 @@ export default function ComplexChecklistModal({
         if (nameMatch || newSubTasks.length > 0) {
           return {
             ...item,
-            subTasks: newSubTasks
+            subTasks: newSubTasks,
           };
         }
         return null;
@@ -447,7 +456,8 @@ export default function ComplexChecklistModal({
     }
   });
 
-  const completedCount = allTasks.filter((t) => t.status === "complete").length;
+  const completedCount = allTasks.filter((t) => t.status === "complete")
+    .length;
   const totalCount = allTasks.length;
   const progressPercent =
     totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
@@ -481,7 +491,7 @@ export default function ComplexChecklistModal({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        pointerEvents: "auto"
+        pointerEvents: "auto",
       }}
     >
       <Card
@@ -495,7 +505,7 @@ export default function ComplexChecklistModal({
           boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
           p: 3,
           position: "relative",
-          pointerEvents: "auto"
+          pointerEvents: "auto",
         }}
       >
         {/* Buton de închidere */}
@@ -505,7 +515,7 @@ export default function ComplexChecklistModal({
             position: "absolute",
             top: 8,
             right: 8,
-            color: "#333"
+            color: "#333",
           }}
         >
           <CloseIcon />
@@ -528,6 +538,9 @@ export default function ComplexChecklistModal({
             {categoryName}
           </Typography>
         </Box>
+
+        {/* Afișare banner (children) dacă există */}
+        {children && <Box sx={{ mt: 2 }}>{children}</Box>}
 
         {/* Adăugare Task Principal */}
         <Box sx={{ display: "flex", gap: 1, mt: 2, mb: 2 }}>
@@ -561,8 +574,8 @@ export default function ComplexChecklistModal({
                 backgroundColor: allComplete ? "#e0e0e0" : "#ffe5e5",
                 "& .MuiLinearProgress-bar": {
                   backgroundColor: allComplete ? "#2e7d32" : "#d32f2f",
-                  transition: "background-color 0.3s ease"
-                }
+                  transition: "background-color 0.3s ease",
+                },
               }}
             />
           </Box>
@@ -578,12 +591,14 @@ export default function ComplexChecklistModal({
             borderRadius: 2,
             padding: 2,
             height: "calc(100% - 220px)",
-            overflowY: "auto"
+            overflowY: "auto",
           }}
         >
           <FormGroup>
             {filteredItems.map((item, itemIndex) => {
-              const { checked, indeterminate } = getParentCheckboxState(item);
+              const { checked, indeterminate } = getParentCheckboxState(
+                item
+              );
 
               return (
                 <Box
@@ -592,12 +607,11 @@ export default function ComplexChecklistModal({
                     border: "1px solid #ccc",
                     borderRadius: 2,
                     p: 1,
-                    mb: 2
+                    mb: 2,
                   }}
                 >
                   {/* PARENT ROW */}
                   <Box sx={{ display: "flex", alignItems: "center" }}>
-                    {/* Afișăm ÎNTOTDEAUNA săgeata */}
                     <IconButton
                       size="small"
                       onClick={() => toggleExpand(itemIndex)}
@@ -610,7 +624,6 @@ export default function ComplexChecklistModal({
                       )}
                     </IconButton>
 
-                    {/* Checkbox + Label */}
                     {editingTask &&
                     editingTask.type === "parent" &&
                     editingTask.itemIndex === itemIndex ? (
@@ -645,15 +658,14 @@ export default function ComplexChecklistModal({
                             }
                             sx={{
                               "&.MuiCheckbox-indeterminate": {
-                                color: "#d32f2f"
-                              }
+                                color: "#d32f2f",
+                              },
                             }}
                           />
                         }
                       />
                     )}
 
-                    {/* Butoane Edit, Note, Delete */}
                     <IconButton
                       onClick={() =>
                         startEdit("parent", itemIndex, null, item.name)
@@ -698,7 +710,7 @@ export default function ComplexChecklistModal({
                                 sx={{
                                   display: "flex",
                                   alignItems: "center",
-                                  mb: 1
+                                  mb: 1,
                                 }}
                               >
                                 {isEditing ? (
@@ -785,7 +797,7 @@ export default function ComplexChecklistModal({
                           display: "flex",
                           gap: 1,
                           alignItems: "center",
-                          mt: 1
+                          mt: 1,
                         }}
                       >
                         <TextField
@@ -811,7 +823,13 @@ export default function ComplexChecklistModal({
 
         {/* Buton generare PDF / OK => salvare */}
         <Box
-          sx={{ position: "absolute", bottom: 16, right: 16, display: "flex", gap: 2 }}
+          sx={{
+            position: "absolute",
+            bottom: 16,
+            right: 16,
+            display: "flex",
+            gap: 2,
+          }}
         >
           {allComplete && (
             <Button variant="contained" color="info" onClick={generatePdf}>
@@ -831,12 +849,8 @@ export default function ComplexChecklistModal({
         disablePortal
         sx={{ zIndex: 13001 }}
         slotProps={{
-          paper: {
-            sx: { zIndex: 13001 }
-          },
-          backdrop: {
-            sx: { zIndex: 13000 }
-          }
+          paper: { sx: { zIndex: 13001 } },
+          backdrop: { sx: { zIndex: 13000 } },
         }}
       >
         <DialogTitle>Modificări nesalvate</DialogTitle>
@@ -844,7 +858,9 @@ export default function ComplexChecklistModal({
           Sigur dorești să închizi fereastra? Vei pierde modificările nesalvate.
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowCloseConfirm(false)}>Anulează</Button>
+          <Button onClick={() => setShowCloseConfirm(false)}>
+            Anulează
+          </Button>
           <Button onClick={confirmCloseWithoutSave} color="error">
             Închide fără să salvezi
           </Button>
@@ -860,12 +876,8 @@ export default function ComplexChecklistModal({
         disablePortal
         sx={{ zIndex: 13001 }}
         slotProps={{
-          paper: {
-            sx: { zIndex: 13001 }
-          },
-          backdrop: {
-            sx: { zIndex: 13000 }
-          }
+          paper: { sx: { zIndex: 13001 } },
+          backdrop: { sx: { zIndex: 13000 } },
         }}
       >
         <DialogTitle>Adaugă note / comentarii</DialogTitle>
@@ -880,7 +892,9 @@ export default function ComplexChecklistModal({
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowNotesDialog(false)}>Anulează</Button>
+          <Button onClick={() => setShowNotesDialog(false)}>
+            Anulează
+          </Button>
           <Button variant="contained" onClick={saveNotes}>
             Salvează
           </Button>

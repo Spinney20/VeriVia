@@ -43,13 +43,13 @@ pub struct Db {
 
 // ------------------ Helper: citește fișierul DB ------------------ //
 fn get_db_path() -> PathBuf {
-  // locația fișierului JSON; îl ai în `src/db/projects.json`
+  // locația fișierului JSON; îl ai în src/db/projects.json
   PathBuf::from("../src/db/projects.json")
 }
 
 // ------------------ Comenzi Tauri ------------------ //
 
-/// Încarcă tot JSON-ul ca `serde_json::Value` și îl întoarce în front-end.
+/// Încarcă tot JSON-ul ca serde_json::Value și îl întoarce în front-end.
 /// Front-end-ul va face structura cum dorește.
 #[tauri::command]
 fn load_projects() -> Result<Value, String> {
@@ -169,6 +169,40 @@ fn add_project(title: String, date: String) -> Result<(), String> {
   Ok(())
 }
 
+/// Încarcă datele tehnice dintr-un fișier Excel și le mapează la formatul checklist-item-ului.
+/// Observă că în loc de "subCategories" se folosește "subTasks" și se setează status-ul ca "incomplete".
+#[tauri::command]
+fn load_technical_data(file_path: String) -> Result<Value, String> {
+  use calamine::{open_workbook_auto, Reader};
+  let mut workbook = open_workbook_auto(&file_path).map_err(|e| e.to_string())?;
+  let sheet_names = workbook.sheet_names().to_owned();
+  if sheet_names.is_empty() {
+      return Err("Nu s-a găsit niciun sheet în fișier.".into());
+  }
+  let sheet_name = &sheet_names[0]; // folosim primul sheet
+  let range = workbook
+      .worksheet_range(sheet_name)
+      .ok_or_else(|| "Nu s-a putut accesa sheet-ul.".to_string())?
+      .map_err(|e| e.to_string())?;
+  let mut technical_data = Vec::new();
+  // Presupunem că primul rând este header; începem cu rândul al doilea.
+  for row in range.rows().skip(1) {
+       // Se presupune că prima coloană (index 0) conține "nr crt." iar a doua (index 1) conține denumirea categoriei.
+       let category_name = row.get(1)
+           .and_then(|cell| cell.get_string())
+           .unwrap_or("")
+           .to_string();
+       if !category_name.is_empty() {
+           technical_data.push(serde_json::json!({
+               "name": category_name,
+               "status": "incomplete",
+               "subTasks": []
+           }));
+       }
+  }
+  Ok(serde_json::to_value(technical_data).map_err(|e| e.to_string())?)
+}
+
 // ---------------------------------------------------- //
 
 fn main() {
@@ -176,7 +210,8 @@ fn main() {
       .invoke_handler(tauri::generate_handler![
           load_projects,
           save_projects,
-          add_project
+          add_project,
+          load_technical_data
       ])
       .run(tauri::generate_context!())
       .expect("error while running tauri application");
