@@ -17,6 +17,7 @@ import {
   LinearProgress,
 } from "@mui/material";
 
+import Badge from "@mui/material/Badge"; // <--- IMPORTĂM Badge
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
@@ -456,8 +457,7 @@ export default function ComplexChecklistModal({
     }
   });
 
-  const completedCount = allTasks.filter((t) => t.status === "complete")
-    .length;
+  const completedCount = allTasks.filter((t) => t.status === "complete").length;
   const totalCount = allTasks.length;
   const progressPercent =
     totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
@@ -596,9 +596,7 @@ export default function ComplexChecklistModal({
         >
           <FormGroup>
             {filteredItems.map((item, itemIndex) => {
-              const { checked, indeterminate } = getParentCheckboxState(
-                item
-              );
+              const { checked, indeterminate } = getParentCheckboxState(item);
 
               return (
                 <Box
@@ -612,17 +610,25 @@ export default function ComplexChecklistModal({
                 >
                   {/* PARENT ROW */}
                   <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <IconButton
-                      size="small"
-                      onClick={() => toggleExpand(itemIndex)}
+                    {/* Afișăm iconul expand/collapse ÎNTOTDEAUNA
+                        + folosim Badge să afișăm nr. subtask-uri (dacă există) */}
+                    <Badge
+                      badgeContent={item.subTasks?.length || 0}
+                      color="primary"
+                      invisible={!item.subTasks || item.subTasks.length === 0}
                       sx={{ mr: 1 }}
                     >
-                      {isExpanded(itemIndex) ? (
-                        <ArrowDropDownIcon />
-                      ) : (
-                        <ArrowRightIcon />
-                      )}
-                    </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => toggleExpand(itemIndex)}
+                      >
+                        {isExpanded(itemIndex) ? (
+                          <ArrowDropDownIcon />
+                        ) : (
+                          <ArrowRightIcon />
+                        )}
+                      </IconButton>
+                    </Badge>
 
                     {editingTask &&
                     editingTask.type === "parent" &&
@@ -730,10 +736,7 @@ export default function ComplexChecklistModal({
                                     >
                                       Salvare
                                     </Button>
-                                    <Button
-                                      variant="text"
-                                      onClick={cancelEdit}
-                                    >
+                                    <Button variant="text" onClick={cancelEdit}>
                                       Anulare
                                     </Button>
                                   </>
