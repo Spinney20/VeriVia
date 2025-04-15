@@ -16,7 +16,6 @@ pub struct ChecklistItem {
   pub name: String,
   pub status: String, // ex. "incomplete", "complete", "verificat" etc.
   // Subtask-urile; e un vector de ChecklistItem identic (recursiv).
-  // #[serde(default)] -> pentru a evita erorile de parsare dacă nu e prezent în JSON
   #[serde(default)]
   pub subTasks: Vec<ChecklistItem>,
 }
@@ -56,7 +55,6 @@ fn get_db_path() -> PathBuf {
 fn load_projects() -> Result<Value, String> {
   let path = get_db_path();
   let data = fs::read_to_string(&path).map_err(|e| e.to_string())?;
-  // Returnăm conținutul ca serde_json::Value
   let json_value: Value = serde_json::from_str(&data).map_err(|e| e.to_string())?;
   Ok(json_value)
 }
@@ -64,9 +62,8 @@ fn load_projects() -> Result<Value, String> {
 /// Primește un string cu tot JSON-ul și îl suprascrie în fișier
 #[tauri::command]
 fn save_projects(new_data: String) -> Result<(), String> {
-  // validăm să fie JSON valid
+  // Validăm să fie JSON valid
   let _parsed: Value = serde_json::from_str(&new_data).map_err(|e| e.to_string())?;
-
   let path = get_db_path();
   fs::write(path, new_data).map_err(|e| e.to_string())?;
   Ok(())
@@ -85,8 +82,7 @@ fn add_project(title: String, date: String) -> Result<(), String> {
       None => 1,
   };
 
-  // Definește checklist-ul pentru categoria "Eligibilitate"
-  // Adăugăm subTasks: vec![] la fiecare item, pentru a putea stoca subtask-uri ulterior.
+  // Checklist-ul pentru categoria "Eligibilitate"
   let default_eligibility_tasks = vec![
       ChecklistItem {
           name: "Garantia de participare".to_string(),
@@ -120,7 +116,25 @@ fn add_project(title: String, date: String) -> Result<(), String> {
       },
   ];
 
-  // Definim categoriile default; pentru "Eligibilitate" se vor popula checklist-urile
+  // Pentru categoria "Financiar" se adaugă implicit itemul "Propunere financiara"
+  let default_financial_tasks = vec![
+      ChecklistItem {
+          name: "Propunere financiara".to_string(),
+          status: "incomplete".to_string(),
+          subTasks: vec![],
+      },
+  ];
+
+  // Pentru categoria "PTE/PCCVI" se adaugă implicit itemul "PTE/PCCVI"
+  let default_pte_tasks = vec![
+      ChecklistItem {
+          name: "PTE/PCCVI".to_string(),
+          status: "incomplete".to_string(),
+          subTasks: vec![],
+      },
+  ];
+
+  // Definim categoriile default
   let default_categories = vec![
       Category {
           name: "Eligibilitate".to_string(),
@@ -128,7 +142,7 @@ fn add_project(title: String, date: String) -> Result<(), String> {
       },
       Category {
           name: "Financiar".to_string(),
-          checklist: vec![],
+          checklist: default_financial_tasks,
       },
       Category {
           name: "Tehnic".to_string(),
@@ -136,11 +150,10 @@ fn add_project(title: String, date: String) -> Result<(), String> {
       },
       Category {
           name: "PTE/PCCVI".to_string(),
-          checklist: vec![],
+          checklist: default_pte_tasks,
       },
   ];
 
-  // Construim noul proiect
   let new_project = Project {
       id: new_id,
       title,
@@ -148,10 +161,8 @@ fn add_project(title: String, date: String) -> Result<(), String> {
       categories: default_categories,
   };
 
-  // Îl adăugăm în array
   db.projects.push(new_project);
 
-  // Salvăm totul înapoi în fișier
   let new_db_json = serde_json::to_string_pretty(&db).map_err(|e| e.to_string())?;
   fs::write(path, new_db_json).map_err(|e| e.to_string())?;
 
