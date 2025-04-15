@@ -53,7 +53,7 @@ fn get_db_path() -> PathBuf {
 #[tauri::command]
 fn load_projects() -> Result<Value, String> {
     let path = get_db_path();
-    let data = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
     let json_value: Value = serde_json::from_str(&data).map_err(|e| e.to_string())?;
     Ok(json_value)
 }
@@ -82,8 +82,8 @@ fn save_projects(new_data: String) -> Result<(), String> {
 
     // Sortăm descrescător după dată
     db.projects.sort_by(|a, b| {
-        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0,0,0));
-        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0,0,0));
+        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0, 0, 0));
+        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0, 0, 0));
         // Pentru descrescător, comparăm b cu a
         dbb.cmp(&da)
     });
@@ -91,7 +91,7 @@ fn save_projects(new_data: String) -> Result<(), String> {
     let path = get_db_path();
     // Salvăm din nou ca JSON sortat
     let final_json = serde_json::to_string_pretty(&db).map_err(|e| e.to_string())?;
-    fs::write(path, final_json).map_err(|e| e.to_string())?;
+    std::fs::write(path, final_json).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -99,7 +99,7 @@ fn save_projects(new_data: String) -> Result<(), String> {
 #[tauri::command]
 fn add_project(title: String, date: String) -> Result<(), String> {
     let path = get_db_path();
-    let data = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
     let mut db: Db = serde_json::from_str(&data).map_err(|e| e.to_string())?;
 
     // Calculăm un nou id (luăm id-ul maxim și îl incrementăm)
@@ -143,22 +143,18 @@ fn add_project(title: String, date: String) -> Result<(), String> {
     ];
 
     // Pentru categoria "Financiar" se adaugă implicit itemul "Propunere financiara"
-    let default_financial_tasks = vec![
-        ChecklistItem {
-            name: "Propunere financiara".to_string(),
-            status: "incomplete".to_string(),
-            subTasks: vec![],
-        },
-    ];
+    let default_financial_tasks = vec![ChecklistItem {
+        name: "Propunere financiara".to_string(),
+        status: "incomplete".to_string(),
+        subTasks: vec![],
+    }];
 
     // Pentru categoria "PTE/PCCVI" se adaugă implicit itemul "PTE/PCCVI"
-    let default_pte_tasks = vec![
-        ChecklistItem {
-            name: "PTE/PCCVI".to_string(),
-            status: "incomplete".to_string(),
-            subTasks: vec![],
-        },
-    ];
+    let default_pte_tasks = vec![ChecklistItem {
+        name: "PTE/PCCVI".to_string(),
+        status: "incomplete".to_string(),
+        subTasks: vec![],
+    }];
 
     // Definim categoriile default
     let default_categories = vec![
@@ -203,14 +199,14 @@ fn add_project(title: String, date: String) -> Result<(), String> {
     }
 
     db.projects.sort_by(|a, b| {
-        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0,0,0));
-        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0,0,0));
+        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0, 0, 0));
+        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0, 0, 0));
         dbb.cmp(&da)
     });
 
     // 3) Rescriem fișierul JSON
     let new_db_json = serde_json::to_string_pretty(&db).map_err(|e| e.to_string())?;
-    fs::write(path, new_db_json).map_err(|e| e.to_string())?;
+    std::fs::write(path, new_db_json).map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -314,6 +310,81 @@ fn load_technical_data(file_path: String) -> Result<Value, String> {
     Ok(serde_json::to_value(technical_data).map_err(|e| e.to_string())?)
 }
 
+// ------------------ NOU: Edit / Delete Proiect ------------------ //
+
+#[tauri::command]
+fn edit_project(id: i64, new_title: String, new_date: String) -> Result<(), String> {
+    let path = get_db_path();
+    let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let mut db: Db = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+
+    // Găsim proiectul și îi edităm title + date
+    if let Some(proj) = db.projects.iter_mut().find(|p| p.id == id) {
+        proj.title = new_title;
+        proj.date = new_date;
+    } else {
+        return Err(format!("Proiectul cu id={} nu există!", id));
+    }
+
+    // Resortăm descrescător după dată
+    fn parse_mm_dd_yyyy(s: &str) -> Option<(i32, u32, u32)> {
+        let parts: Vec<_> = s.split('.').collect();
+        if parts.len() != 3 {
+            return None;
+        }
+        let month = parts[0].parse::<u32>().ok()?;
+        let day = parts[1].parse::<u32>().ok()?;
+        let year = parts[2].parse::<i32>().ok()?;
+        Some((year, month, day))
+    }
+
+    db.projects.sort_by(|a, b| {
+        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0, 0, 0));
+        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0, 0, 0));
+        dbb.cmp(&da)
+    });
+
+    // Scriem fișierul
+    let new_db_json = serde_json::to_string_pretty(&db).map_err(|e| e.to_string())?;
+    std::fs::write(path, new_db_json).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+fn delete_project(id: i64) -> Result<(), String> {
+    let path = get_db_path();
+    let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let mut db: Db = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+
+    // Filtrăm proiectele
+    db.projects.retain(|p| p.id != id);
+
+    // Resortăm
+    fn parse_mm_dd_yyyy(s: &str) -> Option<(i32, u32, u32)> {
+        let parts: Vec<_> = s.split('.').collect();
+        if parts.len() != 3 {
+            return None;
+        }
+        let month = parts[0].parse::<u32>().ok()?;
+        let day = parts[1].parse::<u32>().ok()?;
+        let year = parts[2].parse::<i32>().ok()?;
+        Some((year, month, day))
+    }
+
+    db.projects.sort_by(|a, b| {
+        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0, 0, 0));
+        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0, 0, 0));
+        dbb.cmp(&da)
+    });
+
+    // Scriem fișierul
+    let new_db_json = serde_json::to_string_pretty(&db).map_err(|e| e.to_string())?;
+    std::fs::write(path, new_db_json).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 // ---------------------------------------------------- //
 
 fn main() {
@@ -322,7 +393,10 @@ fn main() {
             load_projects,
             save_projects,
             add_project,
-            load_technical_data
+            load_technical_data,
+            // NOU: edit & delete
+            edit_project,
+            delete_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

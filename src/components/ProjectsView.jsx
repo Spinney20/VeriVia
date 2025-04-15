@@ -5,17 +5,23 @@ import { invoke } from "@tauri-apps/api/tauri";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
-import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import TextField from "@mui/material/TextField";
+import IconButton from "@mui/material/IconButton";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 // Importă componentele pentru modale
 import EligibilityModal from "./EligibilityModal";
 import FinanciarModal from "./FinanciarModal";
 import PteModal from "./PteModal";
-import TehnicModal from "./TehnicModal"; // <-- IMPORT NOU pentru modalul Tehnic
+import TehnicModal from "./TehnicModal"; // <-- NOU pentru modalul Tehnic
 
 export default function ProjectsView() {
-  const [expandedItems, setExpandedItems] = useState([]);
+  const [expandedProjects, setExpandedProjects] = useState([]);
+  // Ține minte care project.id sunt expandate
+
   const [dbData, setDbData] = useState({ projects: [] });
 
   // State pentru modalul "Add Project"
@@ -23,15 +29,23 @@ export default function ProjectsView() {
   const [newProjectTitle, setNewProjectTitle] = useState("");
   const [newProjectDate, setNewProjectDate] = useState("");
 
-  // State pentru proiectul selectat
+  // State pentru proiectul selectat (folosit la modale)
   const [selectedProject, setSelectedProject] = useState(null);
 
   // State-urile pentru cele 4 modale diferite
   const [showEligibilityModal, setShowEligibilityModal] = useState(false);
   const [showFinanciarModal, setShowFinanciarModal] = useState(false);
   const [showPteModal, setShowPteModal] = useState(false);
-  const [showTehnicModal, setShowTehnicModal] = useState(false); // <-- NOU
+  const [showTehnicModal, setShowTehnicModal] = useState(false);
 
+  // ----------------------- NOU: State pentru modalul de Edit -----------------------
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editProjectTitle, setEditProjectTitle] = useState("");
+  const [editProjectDate, setEditProjectDate] = useState("");
+
+  // --------------------------------------------------------------------------------
+  // 1) Load DB
+  // --------------------------------------------------------------------------------
   async function fetchDbData() {
     try {
       const data = await invoke("load_projects");
@@ -45,81 +59,111 @@ export default function ProjectsView() {
     fetchDbData();
   }, []);
 
-  // Construiește arborele pentru RichTreeView
-  const treeItems = dbData.projects.map((proj) => ({
-    id: `proj-${proj.id}`,
-    label: `${proj.date} - ${proj.title}`,
-    children: proj.categories.map((cat, catIndex) => ({
-      id: `cat-${proj.id}-${catIndex}`,
-      label: cat.name,
-      children: []
-    }))
-  }));
-
-  const handleExpandedItemsChange = (_, itemIds) => {
-    setExpandedItems(itemIds);
+  // --------------------------------------------------------------------------------
+  // 2) Expand / Collapse logic
+  // --------------------------------------------------------------------------------
+  const toggleExpandProject = (projectId) => {
+    setExpandedProjects((prev) =>
+      prev.includes(projectId)
+        ? prev.filter((id) => id !== projectId)
+        : [...prev, projectId]
+    );
   };
 
   const handleExpandClick = () => {
-    if (expandedItems.length === 0) {
-      const allIds = [];
-      treeItems.forEach((p) => {
-        allIds.push(p.id);
-        p.children.forEach((c) => {
-          allIds.push(c.id);
-        });
-      });
-      setExpandedItems(allIds);
+    if (expandedProjects.length === 0) {
+      // Expand ALL
+      const allIds = dbData.projects.map((p) => p.id);
+      setExpandedProjects(allIds);
     } else {
-      setExpandedItems([]);
+      // Collapse ALL
+      setExpandedProjects([]);
     }
   };
 
-  // La selectarea unui nod în arbore
-  const handleItemSelect = (_, itemId) => {
-    // Ex: itemId = "cat-<projId>-<catIndex>"
-    if (itemId.startsWith("cat-")) {
-      const parts = itemId.split("-");
-      if (parts.length >= 3) {
-        const projId = parseInt(parts[1], 10);
-        const catIndex = parseInt(parts[2], 10);
-
-        const proj = dbData.projects.find((p) => p.id === projId);
-        if (proj && proj.categories[catIndex]) {
-          const catName = proj.categories[catIndex].name.toLowerCase();
-
-          // Eligibilitate
-          if (catName === "eligibilitate") {
-            setSelectedProject(proj);
-            setShowEligibilityModal(true);
-            return;
-          }
-          // Financiar
-          else if (catName === "financiar") {
-            setSelectedProject(proj);
-            setShowFinanciarModal(true);
-            return;
-          }
-          // PTE/PCCVI
-          else if (catName === "pte/pccvi") {
-            setSelectedProject(proj);
-            setShowPteModal(true);
-            return;
-          }
-          // Tehnic (cazul NOU)
-          else if (catName === "tehnic") {
-            setSelectedProject(proj);
-            setShowTehnicModal(true);
-            return;
-          }
-        }
-      }
-    }
-    // Dacă e un nod de tip "project" (fără cat-), sau altă categorie,
-    // poți pune altă logică aici, dacă e nevoie.
+  const isProjectExpanded = (projectId) => {
+    return expandedProjects.includes(projectId);
   };
 
-  // Modal "Add Project"
+  // --------------------------------------------------------------------------------
+  // 3) Când click pe o categorie => deschide modal
+  // --------------------------------------------------------------------------------
+  const handleCategoryClick = (proj, catIndex) => {
+    const catName = proj.categories[catIndex].name.toLowerCase();
+
+    // Eligibilitate
+    if (catName === "eligibilitate") {
+      setSelectedProject(proj);
+      setShowEligibilityModal(true);
+      return;
+    }
+    // Financiar
+    if (catName === "financiar") {
+      setSelectedProject(proj);
+      setShowFinanciarModal(true);
+      return;
+    }
+    // PTE/PCCVI
+    if (catName === "pte/pccvi") {
+      setSelectedProject(proj);
+      setShowPteModal(true);
+      return;
+    }
+    // Tehnic
+    if (catName === "tehnic") {
+      setSelectedProject(proj);
+      setShowTehnicModal(true);
+      return;
+    }
+  };
+
+  // --------------------------------------------------------------------------------
+  // 4) Editare / Ștergere Proiect
+  // --------------------------------------------------------------------------------
+  const handleDeleteProject = async (projectId) => {
+    if (!window.confirm("Ești sigur că vrei să ștergi acest proiect?")) return;
+    try {
+      await invoke("delete_project", { id: projectId });
+      alert("Proiect șters cu succes!");
+      fetchDbData();
+    } catch (err) {
+      console.error("Eroare la ștergerea proiectului:", err);
+    }
+  };
+
+  // ------------------------------ NOU: Deschide modal Edit -------------------------
+  const handleEditProject = (proj) => {
+    // Setăm datele existente în state
+    setSelectedProject(proj);
+    setEditProjectTitle(proj.title);
+    setEditProjectDate(proj.date);
+    setShowEditModal(true);
+  };
+
+  // --------------------------- NOU: Confirma modificările Edit ---------------------
+  const handleSubmitEditProject = async () => {
+    if (!editProjectTitle.trim() || !editProjectDate.trim()) {
+      alert("Te rog completează toate câmpurile.");
+      return;
+    }
+
+    try {
+      await invoke("edit_project", {
+        id: selectedProject.id,
+        newTitle: editProjectTitle,
+        newDate: editProjectDate,
+      });
+      alert("Proiect modificat cu succes!");
+      setShowEditModal(false);
+      fetchDbData();
+    } catch (err) {
+      console.error("Eroare la modificarea proiectului:", err);
+    }
+  };
+
+  // --------------------------------------------------------------------------------
+  // 5) Add Project modal
+  // --------------------------------------------------------------------------------
   const handleOpenAddModal = () => {
     setShowModal(true);
   };
@@ -138,7 +182,7 @@ export default function ProjectsView() {
     try {
       await invoke("add_project", {
         title: newProjectTitle,
-        date: newProjectDate
+        date: newProjectDate,
       });
       alert("Proiect adăugat cu succes!");
       handleCloseModal();
@@ -148,7 +192,9 @@ export default function ProjectsView() {
     }
   };
 
-  // Confirmare modif. ELIGIBILITATE
+  // --------------------------------------------------------------------------------
+  // 6) Confirmare modificări (din modale)
+  // --------------------------------------------------------------------------------
   const handleEligibilityConfirm = async (updatedTasks) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
@@ -166,7 +212,7 @@ export default function ProjectsView() {
     const updatedDbData = { projects: updatedProjects };
     try {
       await invoke("save_projects", {
-        new_data: JSON.stringify(updatedDbData, null, 2)
+        new_data: JSON.stringify(updatedDbData, null, 2),
       });
       alert("Modificări salvate cu succes (Eligibilitate)!");
       setDbData(updatedDbData);
@@ -175,7 +221,6 @@ export default function ProjectsView() {
     }
   };
 
-  // Confirmare modif. FINANCIAR
   const handleFinancialConfirm = async (updatedTasks) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
@@ -193,7 +238,7 @@ export default function ProjectsView() {
     const updatedDbData = { projects: updatedProjects };
     try {
       await invoke("save_projects", {
-        new_data: JSON.stringify(updatedDbData, null, 2)
+        new_data: JSON.stringify(updatedDbData, null, 2),
       });
       alert("Modificări financiare salvate cu succes!");
       setDbData(updatedDbData);
@@ -202,7 +247,6 @@ export default function ProjectsView() {
     }
   };
 
-  // Confirmare modif. PTE/PCCVI
   const handlePteConfirm = async (updatedTasks) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
@@ -220,7 +264,7 @@ export default function ProjectsView() {
     const updatedDbData = { projects: updatedProjects };
     try {
       await invoke("save_projects", {
-        new_data: JSON.stringify(updatedDbData, null, 2)
+        new_data: JSON.stringify(updatedDbData, null, 2),
       });
       alert("Modificări PTE/PCCVI salvate cu succes!");
       setDbData(updatedDbData);
@@ -229,7 +273,6 @@ export default function ProjectsView() {
     }
   };
 
-  // Confirmare modif. TEHNIC (NOU)
   const handleTehnicConfirm = async (updatedTasks) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
@@ -247,7 +290,7 @@ export default function ProjectsView() {
     const updatedDbData = { projects: updatedProjects };
     try {
       await invoke("save_projects", {
-        new_data: JSON.stringify(updatedDbData, null, 2)
+        new_data: JSON.stringify(updatedDbData, null, 2),
       });
       alert("Modificări tehnice salvate cu succes!");
       setDbData(updatedDbData);
@@ -256,6 +299,9 @@ export default function ProjectsView() {
     }
   };
 
+  // --------------------------------------------------------------------------------
+  // 7) Render
+  // --------------------------------------------------------------------------------
   return (
     <Stack spacing={2} sx={{ backgroundColor: "transparent" }}>
       {/* Butonul de deschidere modal "Add Project" */}
@@ -265,24 +311,98 @@ export default function ProjectsView() {
 
       {/* Buton de expand/collapse all */}
       <Button variant="contained" onClick={handleExpandClick}>
-        {expandedItems.length === 0 ? "EXPAND ALL" : "COLLAPSE ALL"}
+        {expandedProjects.length === 0 ? "EXPAND ALL" : "COLLAPSE ALL"}
       </Button>
 
-      {/* Arborele cu proiecte și categorii */}
+      {/* Afișarea proiectelor (manual) */}
       <Box sx={{ minWidth: 250, backgroundColor: "transparent" }}>
-        <RichTreeView
-          sx={{
-            backgroundColor: "transparent",
-            color: "#fff",
-            "& .MuiTreeItem-root": {
-              backgroundColor: "transparent"
-            }
-          }}
-          items={treeItems}
-          expandedItems={expandedItems}
-          onExpandedItemsChange={handleExpandedItemsChange}
-          onSelectedItemsChange={handleItemSelect}
-        />
+        {dbData.projects.map((proj) => {
+          const expanded = isProjectExpanded(proj.id);
+
+          return (
+            <Box
+              key={proj.id}
+              sx={{
+                mb: 2,
+                p: 1,
+                border: "1px solid #888",
+                borderRadius: 1,
+                backgroundColor: "rgba(255,255,255,0.1)",
+                color: "#fff",
+              }}
+            >
+              {/* Row cu titlul proiectului și butoanele Edit/Delete */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                {/* Stânga: buton expand + text proiect */}
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <IconButton
+                    size="small"
+                    onClick={() => toggleExpandProject(proj.id)}
+                    sx={{ color: "#fff" }}
+                  >
+                    {expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
+                  </IconButton>
+                  <span>
+                    {proj.date} - {proj.title}
+                  </span>
+                </Box>
+
+                {/* Dreapta: butoane Edit / Delete */}
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <IconButton
+                    size="small"
+                    sx={{ color: "#fff" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditProject(proj);
+                    }}
+                  >
+                    <EditIcon fontSize="inherit" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteProject(proj.id);
+                    }}
+                  >
+                    {/* Icon roșu */}
+                    <DeleteIcon fontSize="inherit" sx={{ color: "red" }} />
+                  </IconButton>
+                </Box>
+              </Box>
+
+              {/* Listează categoriile doar dacă expandat */}
+              {expanded && (
+                <Box sx={{ ml: 4, mt: 1 }}>
+                  {proj.categories.map((cat, catIndex) => (
+                    <Box
+                      key={catIndex}
+                      sx={{
+                        mt: 1,
+                        cursor: "pointer",
+                        p: 1,
+                        borderRadius: 1,
+                        "&:hover": {
+                          backgroundColor: "rgba(255,255,255,0.2)",
+                        },
+                      }}
+                      onClick={() => handleCategoryClick(proj, catIndex)}
+                    >
+                      {cat.name}
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          );
+        })}
       </Box>
 
       {/* Modal "Add Project" */}
@@ -296,7 +416,7 @@ export default function ProjectsView() {
             backdropFilter: "blur(10px)",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center"
+            justifyContent: "center",
           }}
         >
           <Box
@@ -308,7 +428,7 @@ export default function ProjectsView() {
               display: "flex",
               flexDirection: "column",
               gap: 2,
-              minWidth: 300
+              minWidth: 300,
             }}
           >
             <TextField
@@ -331,6 +451,63 @@ export default function ProjectsView() {
               </Button>
               <Button variant="contained" onClick={handleSubmitProject}>
                 Submit
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      {/* Modal "Edit Project" - NOU */}
+      {showEditModal && selectedProject && (
+        <Box
+          sx={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            backdropFilter: "blur(10px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Box
+            sx={{
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              borderRadius: 2,
+              p: 4,
+              boxShadow: "0px 4px 15px rgba(0,0,0,0.3)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              minWidth: 300,
+            }}
+          >
+            <TextField
+              label="Nume proiect"
+              variant="outlined"
+              value={editProjectTitle}
+              onChange={(e) => setEditProjectTitle(e.target.value)}
+              fullWidth
+            />
+            <TextField
+              label="Data proiect (MM.DD.YYYY)"
+              variant="outlined"
+              value={editProjectDate}
+              onChange={(e) => setEditProjectDate(e.target.value)}
+              fullWidth
+            />
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setShowEditModal(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button variant="contained" onClick={handleSubmitEditProject}>
+                Confirm Edit
               </Button>
             </Box>
           </Box>

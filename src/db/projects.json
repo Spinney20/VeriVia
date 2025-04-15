@@ -129,68 +129,8 @@
       ]
     },
     {
-      "id": 5,
-      "title": "test2",
-      "date": "04.15.2025",
-      "categories": [
-        {
-          "name": "Eligibilitate",
-          "checklist": [
-            {
-              "name": "Garantia de participare",
-              "status": "incomplete",
-              "subTasks": []
-            },
-            {
-              "name": "Acorduri de subcontractare",
-              "status": "incomplete",
-              "subTasks": []
-            },
-            {
-              "name": "Împuterniciri",
-              "status": "incomplete",
-              "subTasks": []
-            },
-            {
-              "name": "Declarație privind conflictul de interese",
-              "status": "incomplete",
-              "subTasks": []
-            },
-            {
-              "name": "Centralizator experienta similara",
-              "status": "incomplete",
-              "subTasks": []
-            },
-            {
-              "name": "Personal",
-              "status": "incomplete",
-              "subTasks": []
-            }
-          ]
-        },
-        {
-          "name": "Financiar",
-          "checklist": [
-            {
-              "name": "Propunere financiara",
-              "status": "incomplete",
-              "subTasks": []
-            }
-          ]
-        },
-        {
-          "name": "Tehnic",
-          "checklist": []
-        },
-        {
-          "name": "PTE/PCCVI",
-          "checklist": []
-        }
-      ]
-    },
-    {
       "id": 3,
-      "title": "test",
+      "title": "testeditat",
       "date": "04.08.2025",
       "categories": [
         {
