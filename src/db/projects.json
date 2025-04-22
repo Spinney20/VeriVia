@@ -17,10 +17,10 @@
             },
             {
               "name": "Acorduri de subcontractare",
-              "status": "incomplete",
+              "status": "complete",
               "subTasks": [],
-              "proposed": false,
-              "verified": false
+              "proposed": true,
+              "verified": true
             },
             {
               "name": "Împuterniciri",

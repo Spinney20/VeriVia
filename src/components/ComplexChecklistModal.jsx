@@ -17,13 +17,14 @@ import {
   LinearProgress,
 } from "@mui/material";
 
-import Badge from "@mui/material/Badge"; // <--- IMPORTĂM Badge
-import CloseIcon from "@mui/icons-material/Close";
-import ArrowRightIcon from "@mui/icons-material/ArrowRight";
+import Badge             from "@mui/material/Badge";
+import CloseIcon         from "@mui/icons-material/Close";
+import ArrowRightIcon    from "@mui/icons-material/ArrowRight";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import NoteIcon from "@mui/icons-material/NoteAdd";
+import EditIcon          from "@mui/icons-material/Edit";
+import DeleteIcon        from "@mui/icons-material/Delete";
+import NoteIcon          from "@mui/icons-material/NoteAdd";
+import LockIcon          from "@mui/icons-material/Lock";
 
 import { invoke } from "@tauri-apps/api/tauri";
 
@@ -31,120 +32,109 @@ export default function ComplexChecklistModal({
   open,
   onClose,
   onConfirm,
+  /* ───────── nou: rolul utilizatorului ───────── */
+  mode = "editor", // "editor" | "verificator"
+  /* ───────────────────────────────────────────── */
   projectTitle = "Titlu Proiect",
-  userName = "NumeUtilizator",
-  categoryName = "Eligibilitate", // implicit categoria din DB
-  initialTasks = [],              // PROP nou: set de taskuri preluate (ex. din Excel)
-  children,                     // banner / conținut suplimentar
+  userName     = "NumeUtilizator",
+  categoryName = "Eligibilitate",
+  initialTasks = [],
+  children,
 }) {
   // -----------------------------------------------------
   // HOOKS & STATE
   // -----------------------------------------------------
-  const [dbData, setDbData] = useState(null);
-  const [items, setItems] = useState([]);
-  const [expanded, setExpanded] = useState([]);
-  const [newMainTask, setNewMainTask] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [auditLog, setAuditLog] = useState([]);
+  const [dbData, setDbData]               = useState(null);
+  const [items, setItems]                 = useState([]);
+  const [expanded, setExpanded]           = useState([]);
+  const [newMainTask, setNewMainTask]     = useState("");
+  const [newSubtask, setNewSubtask]       = useState("");
+  const [searchTerm, setSearchTerm]       = useState("");
+  const [auditLog, setAuditLog]           = useState([]);
 
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Editare Task
-  const [editingTask, setEditingTask] = useState(null); // { type, itemIndex, subIndex, originalName }
-  const [editName, setEditName] = useState("");
+  const [editingTask, setEditingTask]     = useState(null); // {type,itemIndex,subIndex,originalName}
+  const [editName, setEditName]           = useState("");
 
-  // Note / Comentarii
   const [showNotesDialog, setShowNotesDialog] = useState(false);
-  const [notesValue, setNotesValue] = useState("");
-  const [notesTarget, setNotesTarget] = useState(null); // { type, itemIndex, subIndex }
-
-  // Subtask nou
-  const [newSubtask, setNewSubtask] = useState("");
+  const [notesValue, setNotesValue]       = useState("");
+  const [notesTarget, setNotesTarget]     = useState(null);
 
   // -----------------------------------------------------
-  // 0) HELPER: getParentCheckboxState
+  //  Roluri
+  // -----------------------------------------------------
+  const isEditor      = mode === "editor";
+  const isVerificator = mode === "verificator";
+
+  const Lock = () => (
+    <LockIcon sx={{
+      fontSize: 18,
+      opacity: 0.5,
+      pointerEvents: "none",
+
+      // poziţionare relativă
+      position: "relative",
+      left: "-29.5px", // mută 8px la stânga
+      top: "5px"    // mută 4px în jos
+    }}/>
+  );
+
+  // -----------------------------------------------------
+  // 0) Helper: stări checkbox
   // -----------------------------------------------------
   const getParentCheckboxState = (item) => {
     const hasSub = item.subTasks && item.subTasks.length > 0;
-    if (!hasSub) {
-      return {
-        checked: item.status === "complete",
-        indeterminate: false,
-      };
-    }
-    const allChecked = item.subTasks.every((st) => st.status === "complete");
-    const someChecked = item.subTasks.some((st) => st.status === "complete");
-    return {
-      checked: allChecked,
-      indeterminate: someChecked && !allChecked,
-    };
+    if (!hasSub) return { checked: item.status === "complete", indeterminate: false };
+    const all  = item.subTasks.every((st) => st.status === "complete");
+    const some = item.subTasks.some((st) => st.status === "complete");
+    return { checked: all, indeterminate: some && !all };
   };
 
   const getFlagState = (item, flag) => {
-    if (!item.subTasks || item.subTasks.length === 0) {
-      // nu are copii ⇒ nu poate fi indeterminate
+    if (!item.subTasks || item.subTasks.length === 0)
       return { checked: item[flag], indeterminate: false };
-    }
-
-    const all = item.subTasks.every(st => st[flag]);
-    const some = item.subTasks.some(st => st[flag]);
-
-    return {
-      checked: all,               // bifat doar dacă TOATE sub‑task‑urile au flag‑ul
-      indeterminate: some && !all // „minus” roșu dacă doar o parte au flag‑ul
-    };
+    const all  = item.subTasks.every((st) => st[flag]);
+    const some = item.subTasks.some((st) => st[flag]);
+    return { checked: all, indeterminate: some && !all };
   };
 
   // -----------------------------------------------------
-  // 1) Când se deschide modalul => încărcăm datele
+  // 1) Load data
   // -----------------------------------------------------
   useEffect(() => {
     async function fetchData() {
       try {
-        // Încărcăm DB-ul complet, pentru a putea face salvări ulterioare.
         const data = await invoke("load_projects");
         setDbData(data);
 
-        const foundProject = data.projects?.find(
-          (p) => p.title === projectTitle
-        );
-        if (!foundProject) return;
+        const project  = data.projects?.find((p) => p.title === projectTitle);
+        if (!project) return;
 
-        // Căutăm categoria după categoryName
-        const foundCategory = foundProject.categories?.find(
-          (cat) => cat.name === categoryName
-        );
-        if (!foundCategory) return;
+        const category = project.categories?.find((c) => c.name === categoryName);
+        if (!category) return;
 
-        // ────────── decide de unde luăm baza de date
-        const rawItems =
-        (foundCategory.checklist && foundCategory.checklist.length > 0)
-          ? foundCategory.checklist
-          : (initialTasks?.length > 0 ? initialTasks : []);
+        const raw = category.checklist?.length ? category.checklist : initialTasks;
 
-        // ────────── funcţie recursivă care adaugă flag‑urile peste tot
-        const addFlagsDeep = (t) => ({
-        ...t,
-        proposed : typeof t.proposed  === "boolean" ? t.proposed  : false,
-        verified : typeof t.verified  === "boolean" ? t.verified  : false,
-        subTasks : (t.subTasks ?? []).map(addFlagsDeep),
+        const addFlags = (t) => ({
+          ...t,
+          proposed : typeof t.proposed  === "boolean" ? t.proposed  : false,
+          verified : typeof t.verified  === "boolean" ? t.verified  : false,
+          subTasks : (t.subTasks ?? []).map(addFlags),
         });
-
-        // (opţional) dacă vrei să‑ţi calibrezi şi câmpul `status`
         const fixStatus = (t) => {
-        t.status = (t.proposed && t.verified) ? "complete" : "incomplete";
-        t.subTasks.forEach(fixStatus);
+          t.status = t.proposed && t.verified ? "complete" : "incomplete";
+          t.subTasks.forEach(fixStatus);
         };
 
-        // ────────── construim lista finală
-        const decorated = rawItems.map(addFlagsDeep);
-        decorated.forEach(fixStatus);        // ← poţi comenta dacă nu‑ţi trebuie
+        const ready = raw.map(addFlags);
+        ready.forEach(fixStatus);
 
-        setItems(decorated);
-        setAuditLog([]); // Resetăm log la deschidere
-      } catch (error) {
-        console.error("Eroare la încărcarea proiectelor:", error);
+        setItems(ready);
+        setAuditLog([]);
+      } catch (err) {
+        console.error("Eroare la încărcare:", err);
       }
     }
 
@@ -152,416 +142,271 @@ export default function ComplexChecklistModal({
       fetchData();
       window.addEventListener("beforeunload", handleBeforeUnload);
     }
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [open, projectTitle, categoryName, initialTasks]);
 
   // -----------------------------------------------------
-  // 2) Interceptare închidere (pentru confirmare)
+  // 2) Interceptare închidere
   // -----------------------------------------------------
   const handleBeforeUnload = (e) => {
     if (hasUnsavedChanges) {
       e.preventDefault();
-      e.returnValue = "Ai modificări nesalvate. Sigur vrei să închizi?";
+      e.returnValue = "Ai modificări nesalvate.";
     }
   };
-
   const handleRequestClose = () => {
-    if (hasUnsavedChanges) {
-      setShowCloseConfirm(true);
-    } else {
-      onClose();
-    }
+    hasUnsavedChanges ? setShowCloseConfirm(true) : onClose();
   };
-
   const confirmCloseWithoutSave = () => {
     setShowCloseConfirm(false);
     onClose();
   };
 
   // -----------------------------------------------------
-  // 3) Expand / Collapse
+  // 3) Expand / Collapse
   // -----------------------------------------------------
-  const isExpanded = (index) => expanded.includes(index);
-
-  const toggleExpand = (index) => {
-    setExpanded((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    );
-  };
+  const isExpanded = (i) => expanded.includes(i);
+  const toggleExpand = (i) =>
+    setExpanded((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]));
 
   // -----------------------------------------------------
-  // 4) Toggle părinte / subtask
+  // 4) Toggle flag (rol‑aware)
   // -----------------------------------------------------
-  const handleToggleParent = (itemIndex, checked) => {
+  const toggleFlag = (pIdx, sIdx, flag, val) => {
+    if (isVerificator && flag === "proposed") return; // verificator nu modifică proposed
+    if (isEditor      && flag === "verified") return; // editor nu modifică verified
+
+    // verificator nu poate bifa verified dacă proposed e false
+    if (flag === "verified" && val) {
+      const target = sIdx == null ? items[pIdx] : items[pIdx].subTasks[sIdx];
+      if (!target.proposed) return;
+    }
+
     setHasUnsavedChanges(true);
-    setItems((prevItems) => {
-      const newItems = [...prevItems];
-      const task = { ...newItems[itemIndex] };
-
-      const actionText = checked ? "Checked parent" : "Unchecked parent";
-      addAuditLog(itemIndex, null, actionText);
-
-      if (task.subTasks && task.subTasks.length > 0) {
-        task.subTasks = task.subTasks.map((sub) => ({
-          ...sub,
-          status: checked ? "complete" : "incomplete",
-        }));
-      }
-      task.status = checked ? "complete" : "incomplete";
-      newItems[itemIndex] = task;
-      return newItems;
-    });
-  };
-
-  const handleToggleChild = (itemIndex, subIndex, checked) => {
-    setHasUnsavedChanges(true);
-    setItems((prevItems) => {
-      const newItems = [...prevItems];
-      const task = { ...newItems[itemIndex] };
-
-      if (task.subTasks && task.subTasks[subIndex]) {
-        const updatedSub = { ...task.subTasks[subIndex] };
-        updatedSub.status = checked ? "complete" : "incomplete";
-        task.subTasks[subIndex] = updatedSub;
-
-        const actionText = checked ? "Checked subtask" : "Unchecked subtask";
-        addAuditLog(itemIndex, subIndex, actionText);
-
-        const allChecked = task.subTasks.every((st) => st.status === "complete");
-        task.status = allChecked ? "complete" : "incomplete";
-      }
-      newItems[itemIndex] = task;
-      return newItems;
-    });
-  };
-
-  const toggleFlag = (parentIdx, subIdx, flag, value) => {
-    setHasUnsavedChanges(true);
-
-    setItems(prev => {
-      // ♦ clonăm în profunzime ca să nu modificăm state‑ul direct
+    setItems((prev) => {
       const clone = structuredClone(prev);
+      const parent = clone[pIdx];
 
-      const parentTask = clone[parentIdx];
-
-      // — helper: recalculează câmpul status pe un task —
-      const updateStatus = t => {
-        t.status = (t.proposed && t.verified) ? "complete" : "incomplete";
+      const updateStatus = (t) => {
+        t.status = t.proposed && t.verified ? "complete" : "incomplete";
       };
 
-      if (subIdx == null) {
-        /* =================================================
-           ▸ CLICK PE PĂRINTE  →  propagăm flag‑ul la toți copiii
-           ================================================= */
-        parentTask[flag] = value;
-        parentTask.subTasks.forEach(st => {
-          st[flag] = value;
+      if (sIdx == null) {
+        parent[flag] = val;
+        parent.subTasks.forEach((st) => {
+          st[flag] = val;
           updateStatus(st);
         });
-        updateStatus(parentTask);
+        updateStatus(parent);
       } else {
-        /* =================================================
-           ▸ CLICK PE SUBTASK  →  actualizăm părinte doar
-             dacă toți copiii au flag‑ul bifat
-           ================================================= */
-        const subTask = parentTask.subTasks[subIdx];
-        subTask[flag] = value;
-        updateStatus(subTask);
+        const sub = parent.subTasks[sIdx];
+        sub[flag] = val;
+        updateStatus(sub);
 
-        const allSubsHaveFlag =
-          parentTask.subTasks.length > 0 &&
-          parentTask.subTasks.every(st => st[flag]);
-
-        parentTask[flag] = allSubsHaveFlag;
-        updateStatus(parentTask);
+        parent[flag] = parent.subTasks.length > 0 &&
+                       parent.subTasks.every((st) => st[flag]);
+        updateStatus(parent);
       }
-
       return clone;
     });
 
-    addAuditLog(parentIdx, subIdx, `${flag} → ${value}`);
+    addAuditLog(pIdx, sIdx, `${flag} → ${val}`);
   };
+
   // -----------------------------------------------------
-  // 5) Add / Delete / Edit
+  // 5) Toggle status (bifat complet/incomplet)
   // -----------------------------------------------------
+  const handleToggleParent = (idx, val) => {
+    setHasUnsavedChanges(true);
+    setItems((prev) => {
+      const n = structuredClone(prev);
+      n[idx].status = val ? "complete" : "incomplete";
+      n[idx].subTasks.forEach((st) => (st.status = n[idx].status));
+      return n;
+    });
+  };
+  const handleToggleChild = (pi, si, val) => {
+    setHasUnsavedChanges(true);
+    setItems((prev) => {
+      const n = structuredClone(prev);
+      n[pi].subTasks[si].status = val ? "complete" : "incomplete";
+      const all = n[pi].subTasks.every((s) => s.status === "complete");
+      n[pi].status = all ? "complete" : "incomplete";
+      return n;
+    });
+  };
+
+  // -----------------------------------------------------
+  // 6) Add / Edit / Delete – doar editorul
+  // -----------------------------------------------------
+  const canMutate = isEditor;
+
   const handleAddMainTask = () => {
-    if (!newMainTask.trim()) return;
+    if (!canMutate || !newMainTask.trim()) return;
     setHasUnsavedChanges(true);
-
-    const newItem = {
-      name: newMainTask,
-      status: "incomplete",
-      proposed: false,
-      verified: false,
-      subTasks: [],
-    };
-    setItems((prev) => [...prev, newItem]);
+    setItems((p) => [
+      ...p,
+      {
+        name: newMainTask,
+        status: "incomplete",
+        proposed: false,
+        verified: false,
+        subTasks: [],
+      },
+    ]);
     setNewMainTask("");
-    addAuditLog(null, null, `Adăugat main task: ${newMainTask}`);
   };
 
-  const handleAddSubtask = (itemIndex) => {
-    if (!newSubtask.trim()) return;
+  const handleAddSubtask = (idx) => {
+    if (!canMutate || !newSubtask.trim()) return;
     setHasUnsavedChanges(true);
-
-    setItems((prevItems) => {
-      const newItems = [...prevItems];
-      const task = { ...newItems[itemIndex] };
-
-      if (!task.subTasks) {
-        task.subTasks = [];
-      }
-      task.subTasks.push({
+    setItems((prev) => {
+      const n = structuredClone(prev);
+      n[idx].subTasks.push({
         name: newSubtask,
         status: "incomplete",
         proposed: false,
         verified: false,
         subTasks: [],
       });
-      newItems[itemIndex] = task;
-      return newItems;
+      return n;
     });
-    addAuditLog(itemIndex, null, `Adăugat subtask: ${newSubtask}`);
     setNewSubtask("");
   };
 
-  const handleDeleteTask = (itemIndex) => {
+  const handleDeleteTask = (idx) => {
+    if (!canMutate) return;
     setHasUnsavedChanges(true);
-    const deletedName = items[itemIndex].name;
-
-    setItems((prev) => {
-      const newArr = [...prev];
-      newArr.splice(itemIndex, 1);
-      return newArr;
-    });
-    addAuditLog(itemIndex, null, `Șters main task: ${deletedName}`);
+    setItems((prev) => prev.filter((_, i) => i !== idx));
   };
-
-  const handleDeleteSubtask = (itemIndex, subIndex) => {
+  const handleDeleteSubtask = (pi, si) => {
+    if (!canMutate) return;
     setHasUnsavedChanges(true);
-    const deletedName = items[itemIndex].subTasks[subIndex].name;
-
     setItems((prev) => {
-      const newItems = [...prev];
-      newItems[itemIndex].subTasks.splice(subIndex, 1);
-      return newItems;
+      const n = structuredClone(prev);
+      n[pi].subTasks.splice(si, 1);
+      return n;
     });
-    addAuditLog(itemIndex, subIndex, `Șters subtask: ${deletedName}`);
   };
 
-  // Editare task/subtask
-  const startEdit = (type, itemIndex, subIndex, originalName) => {
-    setEditingTask({ type, itemIndex, subIndex, originalName });
-    setEditName(originalName);
-  };
-
+  const startEdit = (type, i, j, name) =>
+    canMutate && setEditingTask({ type, itemIndex: i, subIndex: j, originalName: name });
   const saveEdit = () => {
-    if (!editName.trim()) {
-      setEditingTask(null);
-      return;
-    }
+    if (!editingTask || !editName.trim()) return;
     setHasUnsavedChanges(true);
-
-    const { type, itemIndex, subIndex, originalName } = editingTask;
-    if (type === "parent") {
-      setItems((prev) => {
-        const newArr = [...prev];
-        newArr[itemIndex].name = editName;
-        return newArr;
-      });
-      addAuditLog(
-        itemIndex,
-        null,
-        `Renamed parent "${originalName}" to "${editName}"`
-      );
-    } else if (type === "child") {
-      setItems((prev) => {
-        const newArr = [...prev];
-        newArr[itemIndex].subTasks[subIndex].name = editName;
-        return newArr;
-      });
-      addAuditLog(
-        itemIndex,
-        subIndex,
-        `Renamed subtask "${originalName}" to "${editName}"`
-      );
-    }
+    setItems((prev) => {
+      const n = structuredClone(prev);
+      if (editingTask.type === "parent")
+        n[editingTask.itemIndex].name = editName;
+      else n[editingTask.itemIndex].subTasks[editingTask.subIndex].name = editName;
+      return n;
+    });
     setEditingTask(null);
   };
-
-  const cancelEdit = () => {
-    setEditingTask(null);
-  };
+  const cancelEdit = () => setEditingTask(null);
 
   // -----------------------------------------------------
-  // 6) Note / Comentarii
+  // 7) Note & audit
   // -----------------------------------------------------
-  const openNotes = (type, itemIndex, subIndex) => {
-    setNotesTarget({ type, itemIndex, subIndex });
+  const openNotes = (type, i, j) => {
+    setNotesTarget({ type, itemIndex: i, subIndex: j });
     setNotesValue("");
     setShowNotesDialog(true);
   };
-
   const saveNotes = () => {
     if (!notesTarget) return;
     setHasUnsavedChanges(true);
-
     const { type, itemIndex, subIndex } = notesTarget;
-
     setItems((prev) => {
-      const newItems = [...prev];
-      if (type === "parent") {
-        if (!("notes" in newItems[itemIndex])) {
-          newItems[itemIndex].notes = [];
-        }
-        newItems[itemIndex].notes.push({
+      const n = structuredClone(prev);
+      const push = (obj) => {
+        if (!obj.notes) obj.notes = [];
+        obj.notes.push({
           date: new Date().toLocaleString(),
           user: userName,
           text: notesValue,
         });
-      } else {
-        if (!("notes" in newItems[itemIndex].subTasks[subIndex])) {
-          newItems[itemIndex].subTasks[subIndex].notes = [];
-        }
-        newItems[itemIndex].subTasks[subIndex].notes.push({
-          date: new Date().toLocaleString(),
-          user: userName,
-          text: notesValue,
-        });
-      }
-      return newItems;
+      };
+      type === "parent"
+        ? push(n[itemIndex])
+        : push(n[itemIndex].subTasks[subIndex]);
+      return n;
     });
-    addAuditLog(itemIndex, subIndex, `Adăugat notă: "${notesValue}"`);
     setShowNotesDialog(false);
   };
 
-  // -----------------------------------------------------
-  // 7) Audit log
-  // -----------------------------------------------------
-  const addAuditLog = (itemIndex, subIndex, action) => {
-    const now = new Date().toLocaleString();
-    const entry = {
-      time: now,
-      user: userName,
-      itemIndex,
-      subIndex,
-      action,
-    };
-    setAuditLog((prev) => [...prev, entry]);
-  };
+  const addAuditLog = (itemIndex, subIndex, action) =>
+    setAuditLog((p) => [
+      ...p,
+      { time: new Date().toLocaleString(), user: userName, itemIndex, subIndex, action },
+    ]);
 
   // -----------------------------------------------------
-  // 8) Salvare finală
+  // 8) Salvare finală – parametru corect: new_data
   // -----------------------------------------------------
   const handleSave = async () => {
-    if (!dbData) {
-      console.error("Nu s-au încărcat datele din DB încă.");
-      return;
-    }
-    const updatedDb = { ...dbData };
-
-    const projectIndex = updatedDb.projects?.findIndex(
-      (p) => p.title === projectTitle
+    if (!dbData) return;
+    const updated = { ...dbData };
+    const pIdx = updated.projects?.findIndex((p) => p.title === projectTitle);
+    if (pIdx === -1) return;
+    const cIdx = updated.projects[pIdx].categories?.findIndex(
+      (c) => c.name === categoryName
     );
-    if (projectIndex === -1) {
-      console.error("Proiectul nu a fost găsit.");
-      return;
-    }
+    if (cIdx === -1) return;
 
-    // Updatăm checklist-ul la categoria specificată (ex: "Tehnic" sau altceva)
-    const categoryIndex =
-      updatedDb.projects[projectIndex].categories?.findIndex(
-        (c) => c.name === categoryName
-      );
-    if (categoryIndex === -1) {
-      console.error(`Categoria '${categoryName}' nu a fost găsită.`);
-      return;
-    }
-
-    updatedDb.projects[projectIndex].categories[categoryIndex].checklist =
-      items;
+    updated.projects[pIdx].categories[cIdx].checklist = items;
 
     try {
       await invoke("save_projects", {
-        newData: JSON.stringify(updatedDb, null, 2),
+        /*  trimitem **ambele** așa încât să meargă în oricare
+            dintre variantele de parametru din Rust                */
+        new_data: JSON.stringify(updated, null, 2),
+        newData : JSON.stringify(updated, null, 2),
       });
-      console.log("Date salvate cu succes în JSON.");
+      console.log("Salvat cu succes");
       setHasUnsavedChanges(false);
-      if (onConfirm) {
-        onConfirm();
-      }
+      onConfirm && onConfirm(items);
       onClose();
-    } catch (error) {
-      console.error("Eroare la salvarea proiectelor:", error);
+    } catch (err) {
+      console.error("Eroare la salvare:", err);
     }
   };
 
   // -----------------------------------------------------
-  // 9) Filtrare / Căutare
+  // 9) Filtrare & progres
   // -----------------------------------------------------
   const getFilteredItems = () => {
-    if (!searchTerm.trim()) {
-      return items;
-    }
-    const lowerSearch = searchTerm.toLowerCase();
-
+    if (!searchTerm.trim()) return items;
+    const kw = searchTerm.toLowerCase();
     return items
-      .map((item) => {
-        const nameMatch = item.name.toLowerCase().includes(lowerSearch);
-
-        let newSubTasks = [];
-        if (item.subTasks && item.subTasks.length > 0) {
-          newSubTasks = item.subTasks.filter((sub) =>
-            sub.name.toLowerCase().includes(lowerSearch)
-          );
-        }
-
-        if (nameMatch || newSubTasks.length > 0) {
-          return {
-            ...item,
-            subTasks: newSubTasks,
-          };
-        }
+      .map((it) => {
+        const nameMatch = it.name.toLowerCase().includes(kw);
+        const newSubs =
+          it.subTasks?.filter((s) => s.name.toLowerCase().includes(kw)) ?? [];
+        if (nameMatch || newSubs.length) return { ...it, subTasks: newSubs };
         return null;
       })
       .filter(Boolean);
   };
+  const filteredItems = getFilteredItems();
 
-  // -----------------------------------------------------
-  // 10) Calcul bară de progres (x din y complete)
-  // -----------------------------------------------------
   const allTasks = [];
-  items.forEach((item) => {
-    allTasks.push(item);
-    if (item.subTasks) {
-      item.subTasks.forEach((st) => allTasks.push(st));
-    }
+  items.forEach((it) => {
+    allTasks.push(it);
+    it.subTasks?.forEach((s) => allTasks.push(s));
   });
-
   const completedCount = allTasks.filter((t) => t.status === "complete").length;
-  const totalCount = allTasks.length;
-  const progressPercent =
-    totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  const totalCount     = allTasks.length;
+  const progressPercent = totalCount ? (completedCount / totalCount) * 100 : 0;
+  const allComplete     = completedCount === totalCount && totalCount > 0;
+
+  const generatePdf = () =>
+    alert("Generez PDF…\n" + JSON.stringify(auditLog, null, 2));
 
   // -----------------------------------------------------
-  // 11) Generare PDF (doar când totul e complet)
-  // -----------------------------------------------------
-  const allComplete = completedCount === totalCount && totalCount > 0;
-
-  const generatePdf = () => {
-    alert(
-      "Generez PDF... (placeholder) \nAudit log:\n" +
-        JSON.stringify(auditLog, null, 2)
-    );
-  };
-
-  // -----------------------------------------------------
-  // UI
+  // 10) UI
   // -----------------------------------------------------
   if (!open) return null;
-  const filteredItems = getFilteredItems();
 
   return (
     <Box
@@ -569,50 +414,33 @@ export default function ComplexChecklistModal({
         position: "fixed",
         inset: 0,
         zIndex: 9999,
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        backgroundColor: "rgba(0,0,0,.6)",
         backdropFilter: "blur(12px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        pointerEvents: "auto",
       }}
     >
       <Card
         sx={{
-          width: "1580px",
-          height: "766px",
-          transform: "scale(0.8)",
-          transformOrigin: "center",
-          backgroundColor: "rgba(255, 255, 255, 0.9)",
+          width: 1580,
+          height: 766,
+          transform: "scale(.8)",
+          backgroundColor: "rgba(255,255,255,.9)",
           borderRadius: 3,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
           p: 3,
           position: "relative",
-          pointerEvents: "auto",
         }}
       >
-        {/* Buton de închidere */}
+        {/* × */}
         <IconButton
           onClick={handleRequestClose}
-          sx={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            color: "#333",
-          }}
+          sx={{ position: "absolute", top: 8, right: 8 }}
         >
           <CloseIcon />
         </IconButton>
 
-        {/* Checkbox global => denumirea categoriei afișată */}
-        <Box sx={{ position: "absolute", top: 12, right: 60 }}>
-          <FormControlLabel
-            control={<Checkbox checked={allComplete} disabled />}
-            label={categoryName}
-          />
-        </Box>
-
-        {/* Titlu principal */}
+        {/* Titlu */}
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <Typography variant="h5" sx={{ fontWeight: "bold", mr: 3 }}>
             {projectTitle}
@@ -622,325 +450,272 @@ export default function ComplexChecklistModal({
           </Typography>
         </Box>
 
-        {/* Afișare banner (children) dacă există */}
         {children && <Box sx={{ mt: 2 }}>{children}</Box>}
 
-        {/* Adăugare Task Principal */}
-        <Box sx={{ display: "flex", gap: 1, mt: 2, mb: 2 }}>
-          <TextField
-            size="small"
-            label="Nume Task Principal"
-            value={newMainTask}
-            onChange={(e) => setNewMainTask(e.target.value)}
-          />
-          <Button variant="contained" onClick={handleAddMainTask}>
-            + Adaugă Task Principal
-          </Button>
-        </Box>
+        {/* Add task principal */}
+        {isEditor && (
+          <Box sx={{ display: "flex", gap: 1, mt: 2, mb: 2 }}>
+            <TextField
+              size="small"
+              label="Nume Task Principal"
+              value={newMainTask}
+              onChange={(e) => setNewMainTask(e.target.value)}
+            />
+            <Button variant="contained" onClick={handleAddMainTask}>
+              + Adaugă Task Principal
+            </Button>
+          </Box>
+        )}
 
-        {/* Search + Bara de progres */}
+        {/* Search + progress */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
           <TextField
             size="small"
-            label="Caută..."
+            label="Caută…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             sx={{ width: 300 }}
           />
           <Box sx={{ flex: 1 }}>
             <LinearProgress
-              variant="determinate"
-              value={progressPercent}
-              sx={{
-                height: 8,
-                borderRadius: 1,
-                backgroundColor: allComplete ? "#e0e0e0" : "#ffe5e5",
-                "& .MuiLinearProgress-bar": {
-                  backgroundColor: allComplete ? "#2e7d32" : "#d32f2f",
-                  transition: "background-color 0.3s ease",
-                },
-              }}
-            />
+            variant="determinate"
+            value={progressPercent}
+            color="inherit"                                          // ← forțează să nu mai folosească albastrul implicit
+            sx={{
+              height: 8,
+              borderRadius: 1,
+              bgcolor: allComplete ? "#e0e0e0" : "#ffcdd2",          // track: gri la final, roșu pal înainte
+              "& .MuiLinearProgress-bar": {
+                backgroundColor: allComplete ? "seagreen" : "#d32f2f", // bară: verde la 100%, roșie altfel
+                transition: "background-color 0.3s ease",
+              },
+            }}
+          />
           </Box>
-          <Typography variant="body1" sx={{ width: 140, textAlign: "center" }}>
+          <Typography sx={{ width: 140, textAlign: "center" }}>
             {completedCount}/{totalCount} ({Math.round(progressPercent)}%)
           </Typography>
         </Box>
 
-        {/* Container scroll */}
+        {/* LISTA */}
         <Box
           sx={{
             border: "1px solid #ddd",
             borderRadius: 2,
-            padding: 2,
+            p: 2,
             height: "calc(100% - 220px)",
             overflowY: "auto",
           }}
         >
           <FormGroup>
-            {filteredItems.map((item, itemIndex) => {
-              const { checked, indeterminate } = getParentCheckboxState(item);
+            {filteredItems.map((item, i) => (
+              <Box key={i} sx={{ border: "1px solid #ccc", p: 1, mb: 2 }}>
+                {/* Parent */}
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Badge
+                    badgeContent={item.subTasks?.length || 0}
+                    color="primary"
+                    invisible={!item.subTasks?.length}
+                    sx={{ mr: 1 }}
+                  >
+                    <IconButton size="small" onClick={() => toggleExpand(i)}>
+                      {isExpanded(i) ? <ArrowDropDownIcon/> : <ArrowRightIcon/>}
+                    </IconButton>
+                  </Badge>
 
-              return (
-                <Box
-                  key={itemIndex}
-                  sx={{
-                    border: "1px solid #ccc",
-                    borderRadius: 2,
-                    p: 1,
-                    mb: 2,
-                  }}
-                >
-                  {/* PARENT ROW */}
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    {/* Afișăm iconul expand/collapse ÎNTOTDEAUNA
-                        + folosim Badge să afișăm nr. subtask-uri (dacă există) */}
-                    <Badge
-                      badgeContent={item.subTasks?.length || 0}
-                      color="primary"
-                      invisible={!item.subTasks || item.subTasks.length === 0}
-                      sx={{ mr: 1 }}
-                    >
-                      <IconButton
+                  {editingTask &&
+                  editingTask.type === "parent" &&
+                  editingTask.itemIndex === i ? (
+                    <>
+                      <TextField
                         size="small"
-                        onClick={() => toggleExpand(itemIndex)}
-                      >
-                        {isExpanded(itemIndex) ? (
-                          <ArrowDropDownIcon />
-                        ) : (
-                          <ArrowRightIcon />
-                        )}
-                      </IconButton>
-                    </Badge>
-
-                    {editingTask &&
-                    editingTask.type === "parent" &&
-                    editingTask.itemIndex === itemIndex ? (
-                      <>
-                        <TextField
-                          size="small"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          sx={{ flex: 1, mr: 1 }}
-                        />
-                        <Button
-                          variant="contained"
-                          onClick={saveEdit}
-                          sx={{ mr: 1 }}
-                        >
-                          Salvare
-                        </Button>
-                        <Button variant="text" onClick={cancelEdit}>
-                          Anulare
-                        </Button>
-                      </>
-                    ) : (
-                      <FormControlLabel
-                        label={item.name}
-                        sx={{ flex: 1 }}
-                        control={
-                          <Box sx={{ display: "flex", gap: .5 }}>
-                            {/* Proposed – albastru */}
-
-                          <Checkbox
-                            checked={getFlagState(item, "proposed").checked}
-                            indeterminate={getFlagState(item, "proposed").indeterminate}
-                            onChange={e =>
-                              toggleFlag(itemIndex, null, "proposed", e.target.checked)
-                            }
-                            sx={{
-                              color: "#333",
-                              "&.Mui-checked":            { color: "#1976d2" },
-                              "&.MuiCheckbox-indeterminate": { color: "#d32f2f" }   // minus roșu
-                            }}
-                          />
-
-                          {/* Verified – verde */}
-                          <Checkbox
-                            checked={getFlagState(item, "verified").checked}
-                            indeterminate={getFlagState(item, "verified").indeterminate}
-                            onChange={e =>
-                              toggleFlag(itemIndex, null, "verified", e.target.checked)
-                            }
-                            sx={{
-                              color: "#333",
-                              "&.Mui-checked":            { color: "seagreen" },
-                              "&.MuiCheckbox-indeterminate": { color: "#d32f2f" }
-                            }}
-                          />
-                          </Box>
-                        }
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        sx={{ flex: 1, mr: 1 }}
                       />
-                    )}
-
-                    <IconButton
-                      onClick={() =>
-                        startEdit("parent", itemIndex, null, item.name)
+                      <Button variant="contained" onClick={saveEdit} sx={{ mr: 1 }}>
+                        Salvare
+                      </Button>
+                      <Button onClick={cancelEdit}>Anulează</Button>
+                    </>
+                  ) : (
+                    <FormControlLabel
+                      sx={{ flex: 1 }}
+                      label={item.name}
+                      control={
+                        <Box sx={{ display: "flex", gap: .5 }}>
+                          {/* proposed */}
+                          <Box sx={{ position: "relative" }}>
+                            <Checkbox
+                              checked={getFlagState(item, "proposed").checked}
+                              indeterminate={getFlagState(item, "proposed").indeterminate}
+                              disabled={isVerificator}
+                              onChange={(e) =>
+                                toggleFlag(i, null, "proposed", e.target.checked)
+                              }
+                              sx={{ "&.Mui-checked": { color: "#1976d2" } }}
+                            />
+                            {isVerificator && <Lock />}
+                          </Box>
+                          {/* verified */}
+                          <Box sx={{ position: "relative" }}>
+                            <Checkbox
+                              checked={getFlagState(item, "verified").checked}
+                              indeterminate={getFlagState(item, "verified").indeterminate}
+                              disabled={
+                                isEditor ||
+                                item.subTasks.some((st) => !st.proposed)
+                              }
+                              onChange={(e) =>
+                                toggleFlag(i, null, "verified", e.target.checked)
+                              }
+                              sx={{ "&.Mui-checked": { color: "seagreen" } }}
+                            />
+                            {(isEditor ||
+                              item.subTasks.some((st) => !st.proposed)) && <Lock />}
+                          </Box>
+                        </Box>
                       }
-                      size="small"
-                    >
-                      <EditIcon fontSize="inherit" />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => openNotes("parent", itemIndex, null)}
-                      size="small"
-                    >
-                      <NoteIcon fontSize="inherit" />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => handleDeleteTask(itemIndex)}
-                      size="small"
-                    >
-                      <DeleteIcon fontSize="inherit" />
-                    </IconButton>
-                  </Box>
+                    />
+                  )}
 
-                  {/* SUBTASKS (dacă expand) */}
-                  {isExpanded(itemIndex) && (
-                    <Box sx={{ ml: 8, mt: 1 }}>
-                      {!item.subTasks || item.subTasks.length === 0 ? (
-                        <Typography variant="body2" color="text.secondary">
-                          Nu există subtask-uri. Adaugă mai jos:
-                        </Typography>
-                      ) : (
-                        <Box sx={{ mb: 2 }}>
-                          {item.subTasks.map((sub, subIndex) => {
-                            const isEditing =
-                              editingTask &&
-                              editingTask.type === "child" &&
-                              editingTask.itemIndex === itemIndex &&
-                              editingTask.subIndex === subIndex;
+                  {isEditor && (
+                    <>
+                      <IconButton
+                        onClick={() => startEdit("parent", i, null, item.name)}
+                        size="small"
+                      >
+                        <EditIcon fontSize="inherit" />
+                      </IconButton>
+                      <IconButton onClick={() => handleDeleteTask(i)} size="small">
+                        <DeleteIcon fontSize="inherit" />
+                      </IconButton>
+                    </>
+                  )}
+                  <IconButton onClick={() => openNotes("parent", i, null)} size="small">
+                    <NoteIcon fontSize="inherit" />
+                  </IconButton>
+                </Box>
 
-                            return (
-                              <Box
-                                key={subIndex}
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  mb: 1,
-                                }}
-                              >
-                                {isEditing ? (
-                                  <>
-                                    <TextField
-                                      size="small"
-                                      value={editName}
-                                      onChange={(e) =>
-                                        setEditName(e.target.value)
-                                      }
-                                      sx={{ flex: 1, mr: 1 }}
-                                    />
-                                    <Button
-                                      variant="contained"
-                                      onClick={saveEdit}
-                                      sx={{ mr: 1 }}
-                                    >
-                                      Salvare
-                                    </Button>
-                                    <Button variant="text" onClick={cancelEdit}>
-                                      Anulare
-                                    </Button>
-                                  </>
-                                ) : (
-                                  <FormControlLabel
-                                    label={sub.name}
-                                    sx={{ flex: 1 }}
-                                    control={
-                                      <Box sx={{ display: "flex", gap: .5 }}>
-                                        <Checkbox
-                                          checked={sub.proposed}
-                                          onChange={e =>
-                                            toggleFlag(itemIndex, subIndex, "proposed", e.target.checked)
-                                          }
-                                          sx={{ "&.Mui-checked": { color: "#1976d2" } }}
-                                        />
-                                        <Checkbox
-                                          checked={sub.verified}
-                                          onChange={e =>
-                                            toggleFlag(itemIndex, subIndex, "verified", e.target.checked)
-                                          }
-                                          sx={{ "&.Mui-checked": { color: "seagreen" } }}
-                                        />
-                                      </Box>
-                                    }
-                                  />
-                                )}
+                {/* Subtasks */}
+                {isExpanded(i) && (
+                  <Box sx={{ ml: 8, mt: 1 }}>
+                    {item.subTasks?.length ? (
+                      <Box sx={{ mb: 2 }}>
+                        {item.subTasks.map((sub, j) => (
+                          <Box
+                            key={j}
+                            sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                          >
+                            {editingTask &&
+                            editingTask.type === "child" &&
+                            editingTask.itemIndex === i &&
+                            editingTask.subIndex === j ? (
+                              <>
+                                <TextField
+                                  size="small"
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  sx={{ flex: 1, mr: 1 }}
+                                />
+                                <Button
+                                  variant="contained"
+                                  onClick={saveEdit}
+                                  sx={{ mr: 1 }}
+                                >
+                                  Salvare
+                                </Button>
+                                <Button onClick={cancelEdit}>Anulează</Button>
+                              </>
+                            ) : (
+                              <FormControlLabel
+                                sx={{ flex: 1 }}
+                                label={sub.name}
+                                control={
+                                  <Box sx={{ display: "flex", gap: .5 }}>
+                                    {/* proposed */}
+                                    <Box sx={{ position: "relative" }}>
+                                      <Checkbox
+                                        checked={sub.proposed}
+                                        disabled={isVerificator}
+                                        onChange={(e) =>
+                                          toggleFlag(i, j, "proposed", e.target.checked)
+                                        }
+                                        sx={{ "&.Mui-checked": { color: "#1976d2" } }}
+                                      />
+                                      {isVerificator && <Lock />}
+                                    </Box>
+                                    {/* verified */}
+                                    <Box sx={{ position: "relative" }}>
+                                      <Checkbox
+                                        checked={sub.verified}
+                                        disabled={isEditor || !sub.proposed}
+                                        onChange={(e) =>
+                                          toggleFlag(i, j, "verified", e.target.checked)
+                                        }
+                                        sx={{ "&.Mui-checked": { color: "seagreen" } }}
+                                      />
+                                      {(isEditor || !sub.proposed) && <Lock />}
+                                    </Box>
+                                  </Box>
+                                }
+                              />
+                            )}
 
+                            {isEditor && (
+                              <>
                                 <IconButton
-                                  onClick={() =>
-                                    startEdit(
-                                      "child",
-                                      itemIndex,
-                                      subIndex,
-                                      sub.name
-                                    )
-                                  }
+                                  onClick={() => startEdit("child", i, j, sub.name)}
                                   size="small"
                                 >
                                   <EditIcon fontSize="inherit" />
                                 </IconButton>
                                 <IconButton
-                                  onClick={() =>
-                                    openNotes("child", itemIndex, subIndex)
-                                  }
-                                  size="small"
-                                >
-                                  <NoteIcon fontSize="inherit" />
-                                </IconButton>
-                                <IconButton
-                                  onClick={() =>
-                                    handleDeleteSubtask(itemIndex, subIndex)
-                                  }
+                                  onClick={() => handleDeleteSubtask(i, j)}
                                   size="small"
                                 >
                                   <DeleteIcon fontSize="inherit" />
                                 </IconButton>
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      )}
+                              </>
+                            )}
+                            <IconButton
+                              onClick={() => openNotes("child", i, j)}
+                              size="small"
+                            >
+                              <NoteIcon fontSize="inherit" />
+                            </IconButton>
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Nu există subtask‑uri.
+                      </Typography>
+                    )}
 
-                      {/* +Add Subtask */}
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 1,
-                          alignItems: "center",
-                          mt: 1,
-                        }}
-                      >
+                    {/* add subtask */}
+                    {isEditor && (
+                      <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                         <TextField
                           size="small"
                           label="Nume subtask"
                           value={newSubtask}
                           onChange={(e) => setNewSubtask(e.target.value)}
                         />
-                        <Button
-                          variant="contained"
-                          onClick={() => handleAddSubtask(itemIndex)}
-                        >
+                        <Button variant="contained" onClick={() => handleAddSubtask(i)}>
                           + Add Subtask
                         </Button>
                       </Box>
-                    </Box>
-                  )}
-                </Box>
-              );
-            })}
+                    )}
+                  </Box>
+                )}
+              </Box>
+            ))}
           </FormGroup>
         </Box>
 
-        {/* Buton generare PDF / OK => salvare */}
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: 16,
-            right: 16,
-            display: "flex",
-            gap: 2,
-          }}
-        >
+        {/* FOOTER */}
+        <Box sx={{ position: "absolute", bottom: 16, right: 16, display: "flex", gap: 2 }}>
           {allComplete && (
             <Button variant="contained" color="info" onClick={generatePdf}>
               Generează Proces Verbal
@@ -952,7 +727,7 @@ export default function ComplexChecklistModal({
         </Box>
       </Card>
 
-      {/* Dialog confirmare închidere */}
+      {/* Dialog confirm close */}
       <Dialog
         open={showCloseConfirm}
         onClose={() => setShowCloseConfirm(false)}
@@ -968,16 +743,14 @@ export default function ComplexChecklistModal({
           Sigur dorești să închizi fereastra? Vei pierde modificările nesalvate.
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowCloseConfirm(false)}>
-            Anulează
-          </Button>
-          <Button onClick={confirmCloseWithoutSave} color="error">
+          <Button onClick={() => setShowCloseConfirm(false)}>Anulează</Button>
+          <Button color="error" onClick={confirmCloseWithoutSave}>
             Închide fără să salvezi
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Dialog pentru note / comentarii */}
+      {/* Dialog note */}
       <Dialog
         open={showNotesDialog}
         onClose={() => setShowNotesDialog(false)}
@@ -1002,9 +775,7 @@ export default function ComplexChecklistModal({
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowNotesDialog(false)}>
-            Anulează
-          </Button>
+          <Button onClick={() => setShowNotesDialog(false)}>Anulează</Button>
           <Button variant="contained" onClick={saveNotes}>
             Salvează
           </Button>
