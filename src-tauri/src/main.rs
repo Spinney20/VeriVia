@@ -1,403 +1,266 @@
 #![cfg_attr(
-  all(not(debug_assertions), target_os = "windows"),
-  windows_subsystem = "windows"
-)]
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+  )]
 
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::fs;
-use std::path::PathBuf;
-use tauri::Manager;
+  use serde::{Deserialize, Serialize};
+  use serde_json::{json, Value};
+  use std::fs;
+  use std::path::PathBuf;
+  use tauri::Manager;
+  use tauri::api::dialog::blocking::FileDialogBuilder; // <-- file picker
 
-// ------------------ Structuri de date ------------------ //
+  // ─────────────────── Structuri de date ─────────────────── //
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ChecklistItem {
-    pub name: String,
-    pub status: String,
-    #[serde(default)]
-    pub subTasks: Vec<ChecklistItem>,
-}
+  #[derive(Debug, Serialize, Deserialize)]
+  pub struct ChecklistItem {
+      pub name: String,
+      pub status: String,          // “complete” / “incomplete”
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Category {
-    pub name: String,
-    // sub-checklist-ul pe care îl poți extinde cu itemi (fiecare item poate avea subTasks)
-    pub checklist: Vec<ChecklistItem>,
-}
+      // ︙ NEW ︙
+      #[serde(default)]
+      pub proposed: bool,
+      #[serde(default)]
+      pub verified: bool,
+      // ︙ END ︙
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Project {
-    pub id: i64,
-    pub title: String,
-    pub date: String,
-    // pot fi 4 categorii default (Eligibilitate, Financiar, Tehnic, PTE/PCCVI)
-    pub categories: Vec<Category>,
-}
+      #[serde(default)]
+      pub subTasks: Vec<ChecklistItem>,
+  }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Db {
-    pub projects: Vec<Project>,
-}
+  #[derive(Debug, Serialize, Deserialize)]
+  pub struct Category {
+      pub name: String,
+      pub checklist: Vec<ChecklistItem>,
+  }
 
-// ------------------ Helper: citește fișierul DB ------------------ //
-fn get_db_path() -> PathBuf {
-    // locația fișierului JSON; îl ai în src/db/projects.json
-    PathBuf::from("../src/db/projects.json")
-}
+  #[derive(Debug, Serialize, Deserialize)]
+  pub struct Project {
+      pub id: i64,
+      pub title: String,
+      pub date: String,
+      pub categories: Vec<Category>,
+  }
 
-// ------------------ Comenzi Tauri ------------------ //
+  #[derive(Debug, Serialize, Deserialize)]
+  pub struct Db {
+      pub projects: Vec<Project>,
+  }
 
-/// Încarcă tot JSON-ul ca serde_json::Value și îl întoarce în front-end.
-/// Front-end-ul va face structura cum dorește.
-#[tauri::command]
-fn load_projects() -> Result<Value, String> {
-    let path = get_db_path();
-    let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let json_value: Value = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-    Ok(json_value)
-}
+  // helper care creează un item cu tot cu flag‑urile noi
+  fn new_item(name: &str) -> ChecklistItem {
+      ChecklistItem {
+          name: name.to_string(),
+          status: "incomplete".into(),
+          proposed: false,
+          verified: false,
+          subTasks: vec![],
+      }
+  }
 
-/// Primește un string cu tot JSON-ul și îl suprascrie în fișier
-#[tauri::command]
-fn save_projects(new_data: String) -> Result<(), String> {
-    // Validăm să fie JSON valid
-    let _parsed: Value = serde_json::from_str(&new_data).map_err(|e| e.to_string())?;
+  // ───────────── Helper: calea către fişierul DB ───────────── //
 
-    // Parsează totul în structura Db (ca să putem sorta)
-    let mut db: Db = serde_json::from_str(&new_data).map_err(|e| e.to_string())?;
+  fn get_db_path() -> PathBuf {
+      let exe_dir = std::env::current_exe()
+          .ok()
+          .and_then(|p| p.parent().map(|pp| pp.to_path_buf()))
+          .unwrap_or_else(|| PathBuf::from("."));
 
-    // Funcție pentru a parsa data "MM.DD.YYYY" în tuple (year, month, day)
-    // ca să putem sorta corect descrescător
-    fn parse_mm_dd_yyyy(s: &str) -> Option<(i32, u32, u32)> {
-        let parts: Vec<_> = s.split('.').collect();
-        if parts.len() != 3 {
-            return None;
-        }
-        let month = parts[0].parse::<u32>().ok()?;
-        let day = parts[1].parse::<u32>().ok()?;
-        let year = parts[2].parse::<i32>().ok()?;
-        Some((year, month, day))
-    }
+      let config_path = exe_dir.join("config.json");
 
-    // Sortăm descrescător după dată
-    db.projects.sort_by(|a, b| {
-        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0, 0, 0));
-        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0, 0, 0));
-        // Pentru descrescător, comparăm b cu a
-        dbb.cmp(&da)
-    });
+      if config_path.exists() {
+          if let Ok(config_str) = fs::read_to_string(&config_path) {
+              if let Ok(mut cfg) = serde_json::from_str::<Value>(&config_str) {
+                  if let Some(db_path) = cfg.get_mut("db_path") {
+                      let path_str = db_path.as_str().unwrap_or("").trim();
+                      if path_str.is_empty() {
+                          if let Some(chosen) = FileDialogBuilder::new()
+                              .set_title("Alege fișierul projects.json")
+                              .pick_file()
+                          {
+                              *db_path = Value::String(chosen.to_string_lossy().into_owned());
+                              let _ = fs::write(&config_path, serde_json::to_string_pretty(&cfg).unwrap());
+                              return chosen;
+                          } else {
+                              return PathBuf::from("../src/db/projects.json");
+                          }
+                      } else {
+                          return PathBuf::from(path_str);
+                      }
+                  }
+              }
+          }
+      }
+      PathBuf::from("../src/db/projects.json")
+  }
 
-    let path = get_db_path();
-    // Salvăm din nou ca JSON sortat
-    let final_json = serde_json::to_string_pretty(&db).map_err(|e| e.to_string())?;
-    std::fs::write(path, final_json).map_err(|e| e.to_string())?;
-    Ok(())
-}
+  // ───────────────────── Comenzi Tauri ───────────────────── //
 
-/// Adaugă un proiect nou cu categoriile implicite, inclusiv subTasks (goale) la itemi
-#[tauri::command]
-fn add_project(title: String, date: String) -> Result<(), String> {
-    let path = get_db_path();
-    let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let mut db: Db = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+  #[tauri::command]
+  fn load_projects() -> Result<Value, String> {
+      let path = get_db_path();
+      let data = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+      let json_value: Value = serde_json::from_str(&data).map_err(|e| e.to_string())?;
+      Ok(json_value)
+  }
 
-    // Calculăm un nou id (luăm id-ul maxim și îl incrementăm)
-    let new_id = match db.projects.iter().map(|p| p.id).max() {
-        Some(max_id) => max_id + 1,
-        None => 1,
-    };
+  #[tauri::command]
+  fn save_projects(new_data: String) -> Result<(), String> {
+      // 1) validăm
+      let mut root: Value = serde_json::from_str(&new_data).map_err(|e| e.to_string())?;
 
-    // Checklist-ul pentru categoria "Eligibilitate"
-    let default_eligibility_tasks = vec![
-        ChecklistItem {
-            name: "Garantia de participare".to_string(),
-            status: "incomplete".to_string(),
-            subTasks: vec![],
-        },
-        ChecklistItem {
-            name: "Acorduri de subcontractare".to_string(),
-            status: "incomplete".to_string(),
-            subTasks: vec![],
-        },
-        ChecklistItem {
-            name: "Împuterniciri".to_string(),
-            status: "incomplete".to_string(),
-            subTasks: vec![],
-        },
-        ChecklistItem {
-            name: "Declarație privind conflictul de interese".to_string(),
-            status: "incomplete".to_string(),
-            subTasks: vec![],
-        },
-        ChecklistItem {
-            name: "Centralizator experienta similara".to_string(),
-            status: "incomplete".to_string(),
-            subTasks: vec![],
-        },
-        ChecklistItem {
-            name: "Personal".to_string(),
-            status: "incomplete".to_string(),
-            subTasks: vec![],
-        },
-    ];
+      // 2) sortăm projects descrescător după dată (rămânem în Value, nu mai pierdem câmpuri!)
+      if let Some(arr) = root
+          .get_mut("projects")
+          .and_then(|v| v.as_array_mut())
+      {
+          fn parse_mm_dd_yyyy(s: &str) -> Option<(i32, u32, u32)> {
+              let p: Vec<_> = s.split('.').collect();
+              if p.len() != 3 { return None; }
+              Some((p[2].parse().ok()?, p[0].parse().ok()?, p[1].parse().ok()?))
+          }
 
-    // Pentru categoria "Financiar" se adaugă implicit itemul "Propunere financiara"
-    let default_financial_tasks = vec![ChecklistItem {
-        name: "Propunere financiara".to_string(),
-        status: "incomplete".to_string(),
-        subTasks: vec![],
-    }];
+          arr.sort_by(|a, b| {
+              let da = a.get("date").and_then(|v| v.as_str()).and_then(parse_mm_dd_yyyy).unwrap_or((0,0,0));
+              let db = b.get("date").and_then(|v| v.as_str()).and_then(parse_mm_dd_yyyy).unwrap_or((0,0,0));
+              db.cmp(&da) // descrescător
+          });
+      }
 
-    // Pentru categoria "PTE/PCCVI" se adaugă implicit itemul "PTE/PCCVI"
-    let default_pte_tasks = vec![ChecklistItem {
-        name: "PTE/PCCVI".to_string(),
-        status: "incomplete".to_string(),
-        subTasks: vec![],
-    }];
+      // 3) scriem pe disc
+      let path = get_db_path();
+      fs::write(&path, serde_json::to_string_pretty(&root).unwrap())
+          .map_err(|e| e.to_string())
+  }
 
-    // Definim categoriile default
-    let default_categories = vec![
-        Category {
-            name: "Eligibilitate".to_string(),
-            checklist: default_eligibility_tasks,
-        },
-        Category {
-            name: "Financiar".to_string(),
-            checklist: default_financial_tasks,
-        },
-        Category {
-            name: "Tehnic".to_string(),
-            checklist: vec![],
-        },
-        Category {
-            name: "PTE/PCCVI".to_string(),
-            checklist: default_pte_tasks,
-        },
-    ];
+  #[tauri::command]
+  fn add_project(title: String, date: String) -> Result<(), String> {
+      // citim
+      let path = get_db_path();
+      let data = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+      let mut root: Value = serde_json::from_str(&data).map_err(|e| e.to_string())?;
 
-    let new_project = Project {
-        id: new_id,
-        title,
-        date,
-        categories: default_categories,
-    };
+      // calculăm next id
+      let next_id = root["projects"]
+          .as_array()
+          .and_then(|arr| arr.iter().filter_map(|p| p["id"].as_i64()).max())
+          .unwrap_or(0) + 1;
 
-    // 1) Adăugăm proiectul în DB
-    db.projects.push(new_project);
+      // definim categoriile default cu new_item()
+      let new_proj = json!({
+          "id": next_id,
+          "title": title,
+          "date": date,
+          "categories": [
+              {
+                  "name": "Eligibilitate",
+                  "checklist": [
+                      new_item("Garantia de participare"),
+                      new_item("Acorduri de subcontractare"),
+                      new_item("Împuterniciri"),
+                      new_item("Declarație privind conflictul de interese"),
+                      new_item("Centralizator experienta similara"),
+                      new_item("Personal")
+                  ]
+              },
+              { "name": "Financiar", "checklist": [ new_item("Propunere financiara") ] },
+              { "name": "Tehnic",   "checklist": [] },
+              { "name": "PTE/PCCVI","checklist": [ new_item("PTE/PCCVI") ] }
+          ]
+      });
 
-    // 2) Sortează DB descrescător după dată, exact ca în `save_projects`
-    fn parse_mm_dd_yyyy(s: &str) -> Option<(i32, u32, u32)> {
-        let parts: Vec<_> = s.split('.').collect();
-        if parts.len() != 3 {
-            return None;
-        }
-        let month = parts[0].parse::<u32>().ok()?;
-        let day = parts[1].parse::<u32>().ok()?;
-        let year = parts[2].parse::<i32>().ok()?;
-        Some((year, month, day))
-    }
+      root["projects"].as_array_mut().unwrap().push(new_proj);
 
-    db.projects.sort_by(|a, b| {
-        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0, 0, 0));
-        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0, 0, 0));
-        dbb.cmp(&da)
-    });
+      // folosim sortarea comună
+      save_projects(root.to_string())
+  }
 
-    // 3) Rescriem fișierul JSON
-    let new_db_json = serde_json::to_string_pretty(&db).map_err(|e| e.to_string())?;
-    std::fs::write(path, new_db_json).map_err(|e| e.to_string())?;
+  use regex::Regex;
+  use lazy_static::lazy_static;
 
-    Ok(())
-}
+  fn is_subtask_name(name: &str) -> bool {
+      lazy_static! {
+          static ref RE_SUB: Regex = Regex::new(
+              r"^( {2,}|[><\-\*]|(i|ii|iii|iv|v|vi|vii|viii|ix|x)\b|\d+\.\d+)"
+          ).unwrap();
+      }
+      RE_SUB.is_match(name.trim_start())
+  }
 
-// ----------------------------------------------------
-// Detectarea “subtask” folosind un regex combinat
-// ----------------------------------------------------
-use regex::Regex;
-use lazy_static::lazy_static;
+  #[tauri::command]
+  fn load_technical_data(file_path: String) -> Result<Value, String> {
+      use calamine::{open_workbook_auto, Reader};
 
-/// Verifică dacă un `name` reprezintă subtask.
-/// Caută la început:
-/// - minim 2 spații
-/// - sau unul din caracterele `> < - *`
-/// - sau un numeral roman (i până la x) urmat de boundary
-/// - sau pattern numeric de tip 1.1 (orice \d+\.\d+)
-fn is_subtask_name(name: &str) -> bool {
-    lazy_static! {
-        static ref RE_SUBTASK: Regex = Regex::new(
-            r"^( {2,}|[><\-\*]|(i|ii|iii|iv|v|vi|vii|viii|ix|x)\b|\d+\.\d+)"
-        ).unwrap();
-    }
-    // Poți ajusta trim-ul sau nu, în funcție de ce date vin din Excel
-    RE_SUBTASK.is_match(name.trim_start())
-}
+      let mut workbook = open_workbook_auto(&file_path).map_err(|e| e.to_string())?;
+      let sheet = workbook.sheet_names().get(0).ok_or("No sheet")?.clone();
+      let range = workbook.worksheet_range(&sheet).ok_or("range")?.map_err(|e| e.to_string())?;
 
-/// Încarcă datele tehnice dintr-un fișier Excel și le mapează la formatul checklist-item-ului.
-/// Observă că în loc de "subCategories" se folosește "subTasks" și se setează status-ul ca "incomplete".
-#[tauri::command]
-fn load_technical_data(file_path: String) -> Result<Value, String> {
-    use calamine::{open_workbook_auto, Reader};
+      let mut tech: Vec<Value> = Vec::new();
+      let mut last_parent: Option<usize> = None;
 
-    // Deschidem workbook-ul
-    let mut workbook = open_workbook_auto(&file_path).map_err(|e| e.to_string())?;
-    let sheet_names = workbook.sheet_names().to_owned();
-    if sheet_names.is_empty() {
-        return Err("Nu s-a găsit niciun sheet în fișier.".into());
-    }
-    let sheet_name = &sheet_names[0]; // folosim primul sheet
-    let range = workbook
-        .worksheet_range(sheet_name)
-        .ok_or_else(|| "Nu s-a putut accesa sheet-ul.".to_string())?
-        .map_err(|e| e.to_string())?;
+      for row in range.rows().skip(5) {
+          let cell = row.get(1).and_then(|c| c.get_string()).unwrap_or("").trim();
+          if cell.is_empty() { continue; }
 
-    // Vectorul final de itemi tehnici
-    let mut technical_data: Vec<ChecklistItem> = Vec::new();
+          if is_subtask_name(cell) {
+              if let Some(p) = last_parent {
+                  tech[p]["subTasks"].as_array_mut().unwrap().push(serde_json::to_value(new_item(cell)).unwrap());
+              } else {
+                  tech.push(serde_json::to_value(new_item(cell)).unwrap());
+                  last_parent = Some(tech.len()-1);
+              }
+          } else {
+              tech.push(serde_json::to_value(new_item(cell)).unwrap());
+              last_parent = Some(tech.len()-1);
+          }
+      }
+      Ok(Value::Array(tech))
+  }
 
-    // Ținem minte indexul ultimului “părinte” (fără indent)
-    let mut last_parent_index: Option<usize> = None;
+  // edit / delete proiect – lucrează exclusiv pe Value şi apoi reusează save_projects
+  #[tauri::command]
+  fn edit_project(id: i64, new_title: String, new_date: String) -> Result<(), String> {
+      let path = get_db_path();
+      let mut root: Value = serde_json::from_str(&fs::read_to_string(&path).map_err(|e| e.to_string())?)
+          .map_err(|e| e.to_string())?;
 
-    // Sar peste primele rânduri (header + subtitluri etc.). Ajustează după nevoie:
-    // .skip(5), .skip(2), etc., în funcție de structura fișierului.
-    for row in range.rows().skip(5) {
-        // Să zicem că a doua coloană (index 1) este denumirea
-        let category_name = row
-            .get(1)
-            .and_then(|cell| cell.get_string())
-            .unwrap_or("")
-            .to_string();
+      if let Some(prj) = root["projects"]
+          .as_array_mut()
+          .and_then(|arr| arr.iter_mut().find(|p| p["id"] == id))
+      {
+          prj["title"] = Value::String(new_title);
+          prj["date"]  = Value::String(new_date);
+      } else {
+          return Err(format!("id={} nu există", id));
+      }
 
-        // Dacă e goală, trecem peste
-        if category_name.trim().is_empty() {
-            continue;
-        }
+      save_projects(root.to_string())
+  }
 
-        let subtask = is_subtask_name(&category_name);
+  #[tauri::command]
+  fn delete_project(id: i64) -> Result<(), String> {
+      let path = get_db_path();
+      let mut root: Value = serde_json::from_str(&fs::read_to_string(&path).map_err(|e| e.to_string())?)
+          .map_err(|e| e.to_string())?;
 
-        if subtask {
-            // Dacă este subtask și avem deja un părinte, îl adăugăm la subTasks
-            if let Some(parent_idx) = last_parent_index {
-                technical_data[parent_idx].subTasks.push(ChecklistItem {
-                    name: category_name.trim().to_owned(),
-                    status: "incomplete".to_owned(),
-                    subTasks: vec![],
-                });
-            } else {
-                // Dacă n-am avut încă “părinte”, îl considerăm totuși main
-                let new_parent = ChecklistItem {
-                    name: category_name.trim().to_owned(),
-                    status: "incomplete".to_owned(),
-                    subTasks: vec![],
-                };
-                technical_data.push(new_parent);
-                last_parent_index = Some(technical_data.len() - 1);
-            }
-        } else {
-            // Nu e indentat => considerăm item "părinte" (main task)
-            let new_parent = ChecklistItem {
-                name: category_name.trim().to_owned(),
-                status: "incomplete".to_owned(),
-                subTasks: vec![],
-            };
-            technical_data.push(new_parent);
+      if let Some(arr) = root["projects"].as_array_mut() {
+          arr.retain(|p| p["id"] != id);
+      }
+      save_projects(root.to_string())
+  }
 
-            // Ținem minte că acest item devine “ultimul părinte”
-            last_parent_index = Some(technical_data.len() - 1);
-        }
-    }
+  // ───────────────────── main() ───────────────────── //
 
-    // Returnăm totul ca JSON
-    Ok(serde_json::to_value(technical_data).map_err(|e| e.to_string())?)
-}
-
-// ------------------ NOU: Edit / Delete Proiect ------------------ //
-
-#[tauri::command]
-fn edit_project(id: i64, new_title: String, new_date: String) -> Result<(), String> {
-    let path = get_db_path();
-    let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let mut db: Db = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-
-    // Găsim proiectul și îi edităm title + date
-    if let Some(proj) = db.projects.iter_mut().find(|p| p.id == id) {
-        proj.title = new_title;
-        proj.date = new_date;
-    } else {
-        return Err(format!("Proiectul cu id={} nu există!", id));
-    }
-
-    // Resortăm descrescător după dată
-    fn parse_mm_dd_yyyy(s: &str) -> Option<(i32, u32, u32)> {
-        let parts: Vec<_> = s.split('.').collect();
-        if parts.len() != 3 {
-            return None;
-        }
-        let month = parts[0].parse::<u32>().ok()?;
-        let day = parts[1].parse::<u32>().ok()?;
-        let year = parts[2].parse::<i32>().ok()?;
-        Some((year, month, day))
-    }
-
-    db.projects.sort_by(|a, b| {
-        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0, 0, 0));
-        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0, 0, 0));
-        dbb.cmp(&da)
-    });
-
-    // Scriem fișierul
-    let new_db_json = serde_json::to_string_pretty(&db).map_err(|e| e.to_string())?;
-    std::fs::write(path, new_db_json).map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
-#[tauri::command]
-fn delete_project(id: i64) -> Result<(), String> {
-    let path = get_db_path();
-    let data = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let mut db: Db = serde_json::from_str(&data).map_err(|e| e.to_string())?;
-
-    // Filtrăm proiectele
-    db.projects.retain(|p| p.id != id);
-
-    // Resortăm
-    fn parse_mm_dd_yyyy(s: &str) -> Option<(i32, u32, u32)> {
-        let parts: Vec<_> = s.split('.').collect();
-        if parts.len() != 3 {
-            return None;
-        }
-        let month = parts[0].parse::<u32>().ok()?;
-        let day = parts[1].parse::<u32>().ok()?;
-        let year = parts[2].parse::<i32>().ok()?;
-        Some((year, month, day))
-    }
-
-    db.projects.sort_by(|a, b| {
-        let da = parse_mm_dd_yyyy(&a.date).unwrap_or((0, 0, 0));
-        let dbb = parse_mm_dd_yyyy(&b.date).unwrap_or((0, 0, 0));
-        dbb.cmp(&da)
-    });
-
-    // Scriem fișierul
-    let new_db_json = serde_json::to_string_pretty(&db).map_err(|e| e.to_string())?;
-    std::fs::write(path, new_db_json).map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
-// ---------------------------------------------------- //
-
-fn main() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            load_projects,
-            save_projects,
-            add_project,
-            load_technical_data,
-            // NOU: edit & delete
-            edit_project,
-            delete_project,
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
-}
+  fn main() {
+      tauri::Builder::default()
+          .invoke_handler(tauri::generate_handler![
+              load_projects,
+              save_projects,
+              add_project,
+              load_technical_data,
+              edit_project,
+              delete_project,
+          ])
+          .run(tauri::generate_context!())
+          .expect("error while running tauri application");
+  }

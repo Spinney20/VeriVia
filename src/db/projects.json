@@ -10,32 +10,51 @@
           "checklist": [
             {
               "name": "Garantia de participare",
-              "status": "incomplete",
-              "subTasks": []
+              "status": "complete",
+              "subTasks": [],
+              "proposed": true,
+              "verified": true
             },
             {
               "name": "Acorduri de subcontractare",
               "status": "incomplete",
-              "subTasks": []
+              "subTasks": [],
+              "proposed": false,
+              "verified": false
             },
             {
               "name": "Împuterniciri",
               "status": "incomplete",
-              "subTasks": []
+              "subTasks": [],
+              "proposed": false,
+              "verified": false
             },
             {
               "name": "Declarație privind conflictul de interese",
               "status": "incomplete",
-              "subTasks": []
+              "subTasks": [],
+              "proposed": false,
+              "verified": false
             },
             {
               "name": "Centralizator experienta similara",
               "status": "incomplete",
-              "subTasks": []
+              "subTasks": [],
+              "proposed": false,
+              "verified": false
             },
             {
               "name": "Personal",
               "status": "incomplete",
+              "subTasks": [],
+              "proposed": false,
+              "verified": false
+            },
+            {
+              "name": "cinee",
+              "status": "complete",
+              "proposed": true,
+              "verified": true,
               "subTasks": []
             }
           ]
@@ -76,18 +95,39 @@
           "checklist": [
             {
               "name": "Garantia de participare",
-              "status": "complete",
-              "subTasks": []
+              "status": "incomplete",
+              "subTasks": [],
+              "proposed": false,
+              "verified": false
             },
             {
               "name": "Centralizator experienta similara",
-              "status": "complete",
-              "subTasks": []
+              "status": "incomplete",
+              "subTasks": [
+                {
+                  "name": "testab",
+                  "status": "incomplete",
+                  "subTasks": [],
+                  "proposed": false,
+                  "verified": false
+                },
+                {
+                  "name": "bu",
+                  "status": "complete",
+                  "proposed": true,
+                  "verified": true,
+                  "subTasks": []
+                }
+              ],
+              "proposed": false,
+              "verified": false
             },
             {
               "name": "Personal",
-              "status": "complete",
-              "subTasks": []
+              "status": "incomplete",
+              "subTasks": [],
+              "proposed": false,
+              "verified": false
             }
           ]
         },
@@ -112,7 +152,30 @@
       "categories": [
         {
           "name": "Eligibilitate",
-          "checklist": []
+          "checklist": [
+            {
+              "name": "Test",
+              "status": "complete",
+              "subTasks": [
+                {
+                  "name": "subtest",
+                  "status": "complete",
+                  "subTasks": [],
+                  "proposed": true,
+                  "verified": true
+                },
+                {
+                  "name": "subtest prim",
+                  "status": "complete",
+                  "subTasks": [],
+                  "proposed": true,
+                  "verified": true
+                }
+              ],
+              "proposed": true,
+              "verified": true
+            }
+          ]
         },
         {
           "name": "Financiar",

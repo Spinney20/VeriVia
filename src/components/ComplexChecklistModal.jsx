@@ -81,6 +81,21 @@ export default function ComplexChecklistModal({
     };
   };
 
+  const getFlagState = (item, flag) => {
+    if (!item.subTasks || item.subTasks.length === 0) {
+      // nu are copii ⇒ nu poate fi indeterminate
+      return { checked: item[flag], indeterminate: false };
+    }
+
+    const all = item.subTasks.every(st => st[flag]);
+    const some = item.subTasks.some(st => st[flag]);
+
+    return {
+      checked: all,               // bifat doar dacă TOATE sub‑task‑urile au flag‑ul
+      indeterminate: some && !all // „minus” roșu dacă doar o parte au flag‑ul
+    };
+  };
+
   // -----------------------------------------------------
   // 1) Când se deschide modalul => încărcăm datele
   // -----------------------------------------------------
@@ -102,13 +117,31 @@ export default function ComplexChecklistModal({
         );
         if (!foundCategory) return;
 
-        // Dacă prop-ul initialTasks a fost transmis și nu este gol, se folosește el,
-        // altfel se folosește checklist-ul din DB.
-        setItems(
-          initialTasks && initialTasks.length > 0
-            ? initialTasks
-            : foundCategory.checklist || []
-        );
+        // ────────── decide de unde luăm baza de date
+        const rawItems =
+        (foundCategory.checklist && foundCategory.checklist.length > 0)
+          ? foundCategory.checklist
+          : (initialTasks?.length > 0 ? initialTasks : []);
+
+        // ────────── funcţie recursivă care adaugă flag‑urile peste tot
+        const addFlagsDeep = (t) => ({
+        ...t,
+        proposed : typeof t.proposed  === "boolean" ? t.proposed  : false,
+        verified : typeof t.verified  === "boolean" ? t.verified  : false,
+        subTasks : (t.subTasks ?? []).map(addFlagsDeep),
+        });
+
+        // (opţional) dacă vrei să‑ţi calibrezi şi câmpul `status`
+        const fixStatus = (t) => {
+        t.status = (t.proposed && t.verified) ? "complete" : "incomplete";
+        t.subTasks.forEach(fixStatus);
+        };
+
+        // ────────── construim lista finală
+        const decorated = rawItems.map(addFlagsDeep);
+        decorated.forEach(fixStatus);        // ← poţi comenta dacă nu‑ţi trebuie
+
+        setItems(decorated);
         setAuditLog([]); // Resetăm log la deschidere
       } catch (error) {
         console.error("Eroare la încărcarea proiectelor:", error);
@@ -204,6 +237,52 @@ export default function ComplexChecklistModal({
     });
   };
 
+  const toggleFlag = (parentIdx, subIdx, flag, value) => {
+    setHasUnsavedChanges(true);
+
+    setItems(prev => {
+      // ♦ clonăm în profunzime ca să nu modificăm state‑ul direct
+      const clone = structuredClone(prev);
+
+      const parentTask = clone[parentIdx];
+
+      // — helper: recalculează câmpul status pe un task —
+      const updateStatus = t => {
+        t.status = (t.proposed && t.verified) ? "complete" : "incomplete";
+      };
+
+      if (subIdx == null) {
+        /* =================================================
+           ▸ CLICK PE PĂRINTE  →  propagăm flag‑ul la toți copiii
+           ================================================= */
+        parentTask[flag] = value;
+        parentTask.subTasks.forEach(st => {
+          st[flag] = value;
+          updateStatus(st);
+        });
+        updateStatus(parentTask);
+      } else {
+        /* =================================================
+           ▸ CLICK PE SUBTASK  →  actualizăm părinte doar
+             dacă toți copiii au flag‑ul bifat
+           ================================================= */
+        const subTask = parentTask.subTasks[subIdx];
+        subTask[flag] = value;
+        updateStatus(subTask);
+
+        const allSubsHaveFlag =
+          parentTask.subTasks.length > 0 &&
+          parentTask.subTasks.every(st => st[flag]);
+
+        parentTask[flag] = allSubsHaveFlag;
+        updateStatus(parentTask);
+      }
+
+      return clone;
+    });
+
+    addAuditLog(parentIdx, subIdx, `${flag} → ${value}`);
+  };
   // -----------------------------------------------------
   // 5) Add / Delete / Edit
   // -----------------------------------------------------
@@ -214,6 +293,8 @@ export default function ComplexChecklistModal({
     const newItem = {
       name: newMainTask,
       status: "incomplete",
+      proposed: false,
+      verified: false,
       subTasks: [],
     };
     setItems((prev) => [...prev, newItem]);
@@ -235,6 +316,8 @@ export default function ComplexChecklistModal({
       task.subTasks.push({
         name: newSubtask,
         status: "incomplete",
+        proposed: false,
+        verified: false,
         subTasks: [],
       });
       newItems[itemIndex] = task;
@@ -653,21 +736,39 @@ export default function ComplexChecklistModal({
                       </>
                     ) : (
                       <FormControlLabel
-                        sx={{ flex: 1 }}
                         label={item.name}
+                        sx={{ flex: 1 }}
                         control={
+                          <Box sx={{ display: "flex", gap: .5 }}>
+                            {/* Proposed – albastru */}
+
                           <Checkbox
-                            checked={checked}
-                            indeterminate={indeterminate}
-                            onChange={(e) =>
-                              handleToggleParent(itemIndex, e.target.checked)
+                            checked={getFlagState(item, "proposed").checked}
+                            indeterminate={getFlagState(item, "proposed").indeterminate}
+                            onChange={e =>
+                              toggleFlag(itemIndex, null, "proposed", e.target.checked)
                             }
                             sx={{
-                              "&.MuiCheckbox-indeterminate": {
-                                color: "#d32f2f",
-                              },
+                              color: "#333",
+                              "&.Mui-checked":            { color: "#1976d2" },
+                              "&.MuiCheckbox-indeterminate": { color: "#d32f2f" }   // minus roșu
                             }}
                           />
+
+                          {/* Verified – verde */}
+                          <Checkbox
+                            checked={getFlagState(item, "verified").checked}
+                            indeterminate={getFlagState(item, "verified").indeterminate}
+                            onChange={e =>
+                              toggleFlag(itemIndex, null, "verified", e.target.checked)
+                            }
+                            sx={{
+                              color: "#333",
+                              "&.Mui-checked":            { color: "seagreen" },
+                              "&.MuiCheckbox-indeterminate": { color: "#d32f2f" }
+                            }}
+                          />
+                          </Box>
                         }
                       />
                     )}
@@ -742,19 +843,25 @@ export default function ComplexChecklistModal({
                                   </>
                                 ) : (
                                   <FormControlLabel
-                                    sx={{ flex: 1 }}
                                     label={sub.name}
+                                    sx={{ flex: 1 }}
                                     control={
-                                      <Checkbox
-                                        checked={sub.status === "complete"}
-                                        onChange={(e) =>
-                                          handleToggleChild(
-                                            itemIndex,
-                                            subIndex,
-                                            e.target.checked
-                                          )
-                                        }
-                                      />
+                                      <Box sx={{ display: "flex", gap: .5 }}>
+                                        <Checkbox
+                                          checked={sub.proposed}
+                                          onChange={e =>
+                                            toggleFlag(itemIndex, subIndex, "proposed", e.target.checked)
+                                          }
+                                          sx={{ "&.Mui-checked": { color: "#1976d2" } }}
+                                        />
+                                        <Checkbox
+                                          checked={sub.verified}
+                                          onChange={e =>
+                                            toggleFlag(itemIndex, subIndex, "verified", e.target.checked)
+                                          }
+                                          sx={{ "&.Mui-checked": { color: "seagreen" } }}
+                                        />
+                                      </Box>
                                     }
                                   />
                                 )}

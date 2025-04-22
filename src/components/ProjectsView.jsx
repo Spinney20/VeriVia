@@ -327,7 +327,7 @@ export default function ProjectsView() {
                 p: 1,
                 border: "1px solid #888",
                 borderRadius: 1,
-                backgroundColor: "rgba(255,255,255,0.1)",
+                backgroundColor: "transparent",
                 color: "#fff",
               }}
             >
