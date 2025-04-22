@@ -249,6 +249,86 @@
       save_projects(root.to_string())
   }
 
+  use bcrypt::{verify, hash, DEFAULT_COST};
+#[derive(Serialize, Deserialize)] struct Role { editor: bool, verificator: bool }
+#[derive(Serialize, Deserialize)] struct User {
+    mail: String,
+    roles: std::collections::HashMap<String, Role>,
+}
+
+#[tauri::command]
+fn auth_login(mail: String, password: String) -> Result<User, String> {
+    let users_path = get_db_path().with_file_name("users.json");
+    let txt = std::fs::read_to_string(users_path).map_err(|e| e.to_string())?;
+    let v: Value = serde_json::from_str(&txt).map_err(|e| e.to_string())?;
+    let arr = v["users"].as_array().ok_or("users invalid")?;
+
+    for u in arr {
+        if u["mail"] == mail {
+            let ok = verify(
+                &password,
+                u["passwordHash"].as_str().unwrap_or(""),
+            )
+            .unwrap_or(false);
+
+            if ok {
+                // trimitem user‑ul fără hash
+                let mut clean = u.clone();
+                clean.as_object_mut().unwrap().remove("passwordHash");
+                return serde_json::from_value(clean).map_err(|e| e.to_string());
+            }
+        }
+    }
+    Err("Credențiale invalide".into())
+}
+
+#[tauri::command]
+fn auth_register(mail: String,
+                 password: String,
+                 roles: std::collections::HashMap<String, Role>) -> Result<(), String> {
+
+    if !mail.contains('@') {
+        return Err("Adresa de e‑mail este invalidă".into());
+    }
+    if password.len() < 6 {
+        return Err("Parola trebuie să aibă cel puțin 6 caractere".into());
+    }
+
+    let users_path = get_db_path().with_file_name("users.json");
+    let mut root: Value = if users_path.exists() {
+        serde_json::from_str(&std::fs::read_to_string(&users_path).map_err(|e| e.to_string())?)
+            .map_err(|e| e.to_string())?
+    } else {
+        json!({ "users": [] })
+    };
+
+    // verificăm ca mail‑ul să fie unic
+    if root["users"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|u| u["mail"] == mail)
+    {
+        return Err("Există deja un cont cu această adresă".into());
+    }
+
+    let hash_str = hash(password, DEFAULT_COST).map_err(|e| e.to_string())?;
+
+    let new_user = json!({
+        "mail": mail,
+        "passwordHash": hash_str,
+        "roles": roles
+    });
+
+    root["users"].as_array_mut().unwrap().push(new_user);
+
+    std::fs::write(
+        &users_path,
+        serde_json::to_string_pretty(&root).unwrap(),
+    )
+    .map_err(|e| e.to_string())
+}
+
   // ───────────────────── main() ───────────────────── //
 
   fn main() {
@@ -260,6 +340,8 @@
               load_technical_data,
               edit_project,
               delete_project,
+              auth_login,
+              auth_register
           ])
           .run(tauri::generate_context!())
           .expect("error while running tauri application");

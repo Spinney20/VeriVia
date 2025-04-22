@@ -1,0 +1,40 @@
+{
+  "users": [
+    {
+      "username": "Spinney",
+      "passwordHash": "$2b$12$K7CrP9MiEnHbLZ7SmDnxZ.0bOjDjBdSY8WZkA3yRhE.XeKLVetEOO",
+      "roles": {
+        "tehnic": {
+          "editor": true,
+          "verificator": false
+        },
+        "eligibilitate": {
+          "editor": false,
+          "verificator": true
+        }
+      }
+    },
+    {
+      "mail": "test@viarom.ro",
+      "passwordHash": "$2b$12$o7FeXZU2bq23JQJuSMpc1e3DPzrulrtGQwMCRSd7dgQv6mwTrQeEu",
+      "roles": {
+        "pte/pccvi": {
+          "editor": true,
+          "verificator": true
+        },
+        "financiar": {
+          "editor": true,
+          "verificator": true
+        },
+        "tehnic": {
+          "editor": true,
+          "verificator": true
+        },
+        "eligibilitate": {
+          "editor": true,
+          "verificator": true
+        }
+      }
+    }
+  ]
+}

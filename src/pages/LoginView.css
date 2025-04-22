@@ -1,0 +1,34 @@
+/* LoginView.css */
+
+/* 1) wrapper rămâne relativ */
+.wrapper {
+    position: relative;
+    overflow: hidden   !important;
+  }
+
+  /* 2) stratul frosted glass – cu z‑index jos */
+  .wrapper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;          /* sub conținut */
+  }
+
+  /* 3) aduc conținutul deasupra */
+  .wrapper > * {
+    position: relative;  /* creează context nou pentru fiecare nod */
+    z-index: 1;          /* deasupra pseudo‑elementului */
+  }
+
+  /* 4) bordură şi umbră tot pe wrapper */
+  .wrapper {
+    border: 2px solid rgba(255,255,255,0.2) !important;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2)      !important;
+    border-radius: 10px                      !important;
+    color: #fff                              !important;
+  }

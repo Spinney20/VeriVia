@@ -126,7 +126,7 @@
               "name": "Personal",
               "status": "incomplete",
               "subTasks": [],
-              "proposed": false,
+              "proposed": true,
               "verified": false
             }
           ]
