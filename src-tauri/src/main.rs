@@ -175,6 +175,38 @@
       save_projects(root.to_string())
   }
 
+  fn get_users_path() -> PathBuf {
+    let exe_dir    = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
+    let config_path = exe_dir.join("config.json");
+    if config_path.exists() {
+      if let Ok(mut cfg) = serde_json::from_str::<Value>(&fs::read_to_string(&config_path).unwrap()) {
+        if let Some(up) = cfg.get_mut("users_path") {
+          if up.as_str().unwrap().trim().is_empty() {
+            if let Some(chosen) = FileDialogBuilder::new()
+              .set_title("Alege fișierul users.json")
+              .pick_file()
+            {
+              *up = Value::String(chosen.to_string_lossy().into_owned());
+              let _ = fs::write(&config_path, serde_json::to_string_pretty(&cfg).unwrap());
+              return chosen;
+            }
+          } else {
+            return PathBuf::from(up.as_str().unwrap());
+          }
+        }
+      }
+    }
+    // fallback
+    exe_dir.join("users.json")
+  }
+
+  #[tauri::command]
+    fn load_users() -> Result<Value, String> {
+    let path = get_users_path();
+    let data = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&data).map_err(|e| e.to_string())
+    }
+
   use regex::Regex;
   use lazy_static::lazy_static;
 
@@ -329,6 +361,33 @@ fn auth_register(mail: String,
     .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn load_config() -> Result<(String, String), String> {
+    // aflăm unde e configurarea
+    let exe_dir = std::env::current_exe()
+        .map_err(|e| e.to_string())?
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    let config_path = exe_dir.join("config.json");
+
+    // citim fișierul
+    let cfg_text = std::fs::read_to_string(&config_path).map_err(|e| e.to_string())?;
+    let v: serde_json::Value = serde_json::from_str(&cfg_text).map_err(|e| e.to_string())?;
+
+    // extragem cele două căi
+    let db_path    = v.get("db_path"   )
+                      .and_then(|p| p.as_str())
+                      .unwrap_or("")
+                      .to_string();
+    let users_path = v.get("users_path")
+                      .and_then(|p| p.as_str())
+                      .unwrap_or("")
+                      .to_string();
+
+    Ok((db_path, users_path))
+}
+
   // ───────────────────── main() ───────────────────── //
 
   fn main() {
@@ -341,7 +400,9 @@ fn auth_register(mail: String,
               edit_project,
               delete_project,
               auth_login,
-              auth_register
+              auth_register,
+              load_users,
+              load_config
           ])
           .run(tauri::generate_context!())
           .expect("error while running tauri application");

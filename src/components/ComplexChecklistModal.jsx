@@ -28,6 +28,55 @@ import LockIcon          from "@mui/icons-material/Lock";
 
 import { invoke } from "@tauri-apps/api/tauri";
 
+// ──────────────────────────────────────────────────────────────
+//  Componentă reutilizabilă: checkbox cu lock centrat în interior
+// ──────────────────────────────────────────────────────────────
+const LockedCheckbox = React.forwardRef(
+  ({ lock, sx, ...others }, ref) => (
+    <Box
+      sx={{
+        position: "relative",
+        display:  "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width:  40,
+        height: 40,
+      }}
+    >
+      <Checkbox
+        ref={ref}
+        disableRipple
+        sx={{
+          p: 0,
+          // when indeterminate, make the little dash red
+          "&.MuiCheckbox-indeterminate .MuiSvgIcon-root": {
+            color: "#c62828",
+          },
+          // keep existing checked color
+          "&.Mui-checked": {
+            color: "#1976d2",
+          },
+          ...sx,
+        }}
+        {...others}
+      />
+      {lock && (
+        <LockIcon
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            fontSize: 15,
+            opacity: 0.5,
+            pointerEvents: "none",
+          }}
+        />
+      )}
+    </Box>
+  )
+);
+
 export default function ComplexChecklistModal({
   open,
   onClose,
@@ -63,23 +112,10 @@ export default function ComplexChecklistModal({
   const [notesTarget, setNotesTarget]     = useState(null);
 
   // -----------------------------------------------------
-  //  Roluri
+  // Roluri
   // -----------------------------------------------------
   const isEditor      = mode === "editor";
   const isVerificator = mode === "verificator";
-
-  const Lock = () => (
-    <LockIcon sx={{
-      fontSize: 18,
-      opacity: 0.5,
-      pointerEvents: "none",
-
-      // poziţionare relativă
-      position: "relative",
-      left: "-29.5px", // mută 8px la stânga
-      top: "5px"    // mută 4px în jos
-    }}/>
-  );
 
   // -----------------------------------------------------
   // 0) Helper: stări checkbox
@@ -101,7 +137,7 @@ export default function ComplexChecklistModal({
   };
 
   // -----------------------------------------------------
-  // 1) Load data
+  // 1) Load data
   // -----------------------------------------------------
   useEffect(() => {
     async function fetchData() {
@@ -146,7 +182,7 @@ export default function ComplexChecklistModal({
   }, [open, projectTitle, categoryName, initialTasks]);
 
   // -----------------------------------------------------
-  // 2) Interceptare închidere
+  // 2) Interceptare închidere
   // -----------------------------------------------------
   const handleBeforeUnload = (e) => {
     if (hasUnsavedChanges) {
@@ -163,20 +199,19 @@ export default function ComplexChecklistModal({
   };
 
   // -----------------------------------------------------
-  // 3) Expand / Collapse
+  // 3) Expand / Collapse
   // -----------------------------------------------------
   const isExpanded = (i) => expanded.includes(i);
   const toggleExpand = (i) =>
     setExpanded((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]));
 
   // -----------------------------------------------------
-  // 4) Toggle flag (rol‑aware)
+  // 4) Toggle flag (rol‑aware)
   // -----------------------------------------------------
   const toggleFlag = (pIdx, sIdx, flag, val) => {
-    if (isVerificator && flag === "proposed") return; // verificator nu modifică proposed
-    if (isEditor      && flag === "verified") return; // editor nu modifică verified
+    if (isVerificator && flag === "proposed") return;
+    if (isEditor      && flag === "verified") return;
 
-    // verificator nu poate bifa verified dacă proposed e false
     if (flag === "verified" && val) {
       const target = sIdx == null ? items[pIdx] : items[pIdx].subTasks[sIdx];
       if (!target.proposed) return;
@@ -214,7 +249,7 @@ export default function ComplexChecklistModal({
   };
 
   // -----------------------------------------------------
-  // 5) Toggle status (bifat complet/incomplet)
+  // 5) Toggle status (complete/incomplete)
   // -----------------------------------------------------
   const handleToggleParent = (idx, val) => {
     setHasUnsavedChanges(true);
@@ -237,7 +272,7 @@ export default function ComplexChecklistModal({
   };
 
   // -----------------------------------------------------
-  // 6) Add / Edit / Delete – doar editorul
+  // 6) Add / Edit / Delete – doar editorul
   // -----------------------------------------------------
   const canMutate = isEditor;
 
@@ -306,7 +341,7 @@ export default function ComplexChecklistModal({
   const cancelEdit = () => setEditingTask(null);
 
   // -----------------------------------------------------
-  // 7) Note & audit
+  // 7) Note & audit
   // -----------------------------------------------------
   const openNotes = (type, i, j) => {
     setNotesTarget({ type, itemIndex: i, subIndex: j });
@@ -342,7 +377,7 @@ export default function ComplexChecklistModal({
     ]);
 
   // -----------------------------------------------------
-  // 8) Salvare finală – parametru corect: new_data
+  // 8) Salvare finală – parametru corect: new_data
   // -----------------------------------------------------
   const handleSave = async () => {
     if (!dbData) return;
@@ -358,8 +393,6 @@ export default function ComplexChecklistModal({
 
     try {
       await invoke("save_projects", {
-        /*  trimitem **ambele** așa încât să meargă în oricare
-            dintre variantele de parametru din Rust                */
         new_data: JSON.stringify(updated, null, 2),
         newData : JSON.stringify(updated, null, 2),
       });
@@ -373,7 +406,7 @@ export default function ComplexChecklistModal({
   };
 
   // -----------------------------------------------------
-  // 9) Filtrare & progres
+  // 9) Filtrare & progres
   // -----------------------------------------------------
   const getFilteredItems = () => {
     if (!searchTerm.trim()) return items;
@@ -404,7 +437,7 @@ export default function ComplexChecklistModal({
     alert("Generez PDF…\n" + JSON.stringify(auditLog, null, 2));
 
   // -----------------------------------------------------
-  // 10) UI
+  // 10) UI
   // -----------------------------------------------------
   if (!open) return null;
 
@@ -432,7 +465,7 @@ export default function ComplexChecklistModal({
           position: "relative",
         }}
       >
-        {/* × */}
+        {/* × */}
         <IconButton
           onClick={handleRequestClose}
           sx={{ position: "absolute", top: 8, right: 8 }}
@@ -452,7 +485,7 @@ export default function ComplexChecklistModal({
 
         {children && <Box sx={{ mt: 2 }}>{children}</Box>}
 
-        {/* Add task principal */}
+        {/* Add main task (editor) */}
         {isEditor && (
           <Box sx={{ display: "flex", gap: 1, mt: 2, mb: 2 }}>
             <TextField
@@ -478,19 +511,19 @@ export default function ComplexChecklistModal({
           />
           <Box sx={{ flex: 1 }}>
             <LinearProgress
-            variant="determinate"
-            value={progressPercent}
-            color="inherit"                                          // ← forțează să nu mai folosească albastrul implicit
-            sx={{
-              height: 8,
-              borderRadius: 1,
-              bgcolor: allComplete ? "#e0e0e0" : "#ffcdd2",          // track: gri la final, roșu pal înainte
-              "& .MuiLinearProgress-bar": {
-                backgroundColor: allComplete ? "seagreen" : "#d32f2f", // bară: verde la 100%, roșie altfel
-                transition: "background-color 0.3s ease",
-              },
-            }}
-          />
+              variant="determinate"
+              value={progressPercent}
+              color="inherit"
+              sx={{
+                height: 8,
+                borderRadius: 1,
+                bgcolor: allComplete ? "#e0e0e0" : "#ffcdd2",
+                "& .MuiLinearProgress-bar": {
+                  backgroundColor: allComplete ? "seagreen" : "#d32f2f",
+                  transition: "background-color 0.3s ease",
+                },
+              }}
+            />
           </Box>
           <Typography sx={{ width: 140, textAlign: "center" }}>
             {completedCount}/{totalCount} ({Math.round(progressPercent)}%)
@@ -519,7 +552,7 @@ export default function ComplexChecklistModal({
                     sx={{ mr: 1 }}
                   >
                     <IconButton size="small" onClick={() => toggleExpand(i)}>
-                      {isExpanded(i) ? <ArrowDropDownIcon/> : <ArrowRightIcon/>}
+                      {isExpanded(i) ? <ArrowDropDownIcon /> : <ArrowRightIcon />}
                     </IconButton>
                   </Badge>
 
@@ -545,35 +578,30 @@ export default function ComplexChecklistModal({
                       control={
                         <Box sx={{ display: "flex", gap: .5 }}>
                           {/* proposed */}
-                          <Box sx={{ position: "relative" }}>
-                            <Checkbox
-                              checked={getFlagState(item, "proposed").checked}
-                              indeterminate={getFlagState(item, "proposed").indeterminate}
-                              disabled={isVerificator}
-                              onChange={(e) =>
-                                toggleFlag(i, null, "proposed", e.target.checked)
-                              }
-                              sx={{ "&.Mui-checked": { color: "#1976d2" } }}
-                            />
-                            {isVerificator && <Lock />}
-                          </Box>
+                          <LockedCheckbox
+                            lock={isVerificator}
+                            checked={getFlagState(item, "proposed").checked}
+                            indeterminate={getFlagState(item, "proposed").indeterminate}
+                            disabled={isVerificator}
+                            onChange={(e) =>
+                              toggleFlag(i, null, "proposed", e.target.checked)
+                            }
+                            sx={{ "&.Mui-checked": { color: "#1976d2" } }}
+                          />
                           {/* verified */}
-                          <Box sx={{ position: "relative" }}>
-                            <Checkbox
-                              checked={getFlagState(item, "verified").checked}
-                              indeterminate={getFlagState(item, "verified").indeterminate}
-                              disabled={
-                                isEditor ||
-                                item.subTasks.some((st) => !st.proposed)
-                              }
-                              onChange={(e) =>
-                                toggleFlag(i, null, "verified", e.target.checked)
-                              }
-                              sx={{ "&.Mui-checked": { color: "seagreen" } }}
-                            />
-                            {(isEditor ||
-                              item.subTasks.some((st) => !st.proposed)) && <Lock />}
-                          </Box>
+                          <LockedCheckbox
+                            lock={isEditor}
+                            checked={getFlagState(item, "verified").checked}
+                            indeterminate={getFlagState(item, "verified").indeterminate}
+                            disabled={
+                              isEditor ||
+                              item.subTasks.some((st) => !st.proposed)
+                            }
+                            onChange={(e) =>
+                              toggleFlag(i, null, "verified", e.target.checked)
+                            }
+                            sx={{ "&.Mui-checked": { color: "seagreen" } }}
+                          />
                         </Box>
                       }
                     />
@@ -634,29 +662,25 @@ export default function ComplexChecklistModal({
                                 control={
                                   <Box sx={{ display: "flex", gap: .5 }}>
                                     {/* proposed */}
-                                    <Box sx={{ position: "relative" }}>
-                                      <Checkbox
-                                        checked={sub.proposed}
-                                        disabled={isVerificator}
-                                        onChange={(e) =>
-                                          toggleFlag(i, j, "proposed", e.target.checked)
-                                        }
-                                        sx={{ "&.Mui-checked": { color: "#1976d2" } }}
-                                      />
-                                      {isVerificator && <Lock />}
-                                    </Box>
+                                    <LockedCheckbox
+                                      lock={isVerificator}
+                                      checked={sub.proposed}
+                                      disabled={isVerificator}
+                                      onChange={(e) =>
+                                        toggleFlag(i, j, "proposed", e.target.checked)
+                                      }
+                                      sx={{ "&.Mui-checked": { color: "#1976d2" } }}
+                                    />
                                     {/* verified */}
-                                    <Box sx={{ position: "relative" }}>
-                                      <Checkbox
-                                        checked={sub.verified}
-                                        disabled={isEditor || !sub.proposed}
-                                        onChange={(e) =>
-                                          toggleFlag(i, j, "verified", e.target.checked)
-                                        }
-                                        sx={{ "&.Mui-checked": { color: "seagreen" } }}
-                                      />
-                                      {(isEditor || !sub.proposed) && <Lock />}
-                                    </Box>
+                                    <LockedCheckbox
+                                      lock={isEditor}
+                                      checked={sub.verified}
+                                      disabled={isEditor || !sub.proposed}
+                                      onChange={(e) =>
+                                        toggleFlag(i, j, "verified", e.target.checked)
+                                      }
+                                      sx={{ "&.Mui-checked": { color: "seagreen" } }}
+                                    />
                                   </Box>
                                 }
                               />
@@ -727,7 +751,7 @@ export default function ComplexChecklistModal({
         </Box>
       </Card>
 
-      {/* Dialog confirm close */}
+      {/* Dialog confirm close */}
       <Dialog
         open={showCloseConfirm}
         onClose={() => setShowCloseConfirm(false)}

@@ -1,33 +1,49 @@
+// src/App.jsx
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { invoke } from "@tauri-apps/api/tauri";
+import Box from "@mui/material/Box";
+
 import { AuthProvider } from "./auth/AuthContext";
 import RequireAuth from "./auth/RequireAuth";
 
-import LoginView    from "./pages/LoginView";
+import LoginView from "./pages/LoginView";
 import ProjectsView from "./pages/ProjectsView";
 
 import "./index.css";
 
 export default function App() {
+  const [paths, setPaths] = useState({ db: "", users: "" });
+
+  useEffect(() => {
+    invoke("load_config")
+      .then(([dbPath, usersPath]) => {
+        setPaths({ db: dbPath, users: usersPath });
+      })
+      .catch(console.error);
+  }, []);
+
   return (
     <AuthProvider>
-      <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginView />} />
 
-        {/* rutele care cer autentificare */}
-        <Route element={<RequireAuth />}>
-          <Route
-            path="/*"
-            element={
-              <div className="AppContainer">
-                <div className="CategoriesPanel">
-                  <ProjectsView />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginView />} />
+
+          {/* rutele care cer autentificare */}
+          <Route element={<RequireAuth />}>
+            <Route
+              path="/*"
+              element={
+                <div className="AppContainer">
+                  <div className="CategoriesPanel">
+                    <ProjectsView />
+                  </div>
                 </div>
-              </div>
-            }
-          />
-        </Route>
-      </Routes>
+              }
+            />
+          </Route>
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
