@@ -1,44 +1,59 @@
-// src/components/TehnicModal.jsx
 import React, { useState } from "react";
 import ComplexChecklistModal from "./ComplexChecklistModal";
 import { invoke } from "@tauri-apps/api/tauri";
 import { open } from "@tauri-apps/api/dialog";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
-import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
-import excelIcon from "../images/excel.png";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+
+import Box               from "@mui/material/Box";
+import Button            from "@mui/material/Button";
+import Typography        from "@mui/material/Typography";
+import IconButton        from "@mui/material/IconButton";
+import Tooltip           from "@mui/material/Tooltip";
+import CloseIcon         from "@mui/icons-material/Close";
+import excelIcon         from "../images/excel.png";
+import VisibilityIcon    from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 export default function TehnicModal({
-  mode = "editor",          // rolul utilizatorului
-  initialTasks: propTasks,  // datele inițiale venite din props
+  mode = "editor",
+  initialTasks: propTasks,
+  projectId,
+  excelPath: initialPath,
   ...props
 }) {
-  const [loadingExcel, setLoadingExcel] = useState(false);
-  const [excelData, setExcelData]       = useState(null);
+  const [loadingExcel, setLoadingExcel]       = useState(false);
+  const [excelData, setExcelData]             = useState(null);
+  const [excelPath, setExcelPath]             = useState(initialPath);
   const [showExcelBanner, setShowExcelBanner] = useState(false);
   const [iconHovered, setIconHovered]         = useState(false);
 
   const isEditor = mode === "editor";
 
+  /* încărcare nouă */
   const handleAddExcel = async () => {
+    const filePath = await open({
+      filters : [{ name: "Excel Files", extensions: ["xlsx", "xls"] }],
+      multiple: false,
+    });
+    if (filePath) await loadExcel(filePath);
+  };
+
+  /* update rapid */
+  const handleUpdateExcel = async () => {
+    if (excelPath) await loadExcel(excelPath, true);
+  };
+
+  /* loader comun */
+  const loadExcel = async (filePath, silent = false) => {
     setLoadingExcel(true);
     try {
-      const filePath = await open({
-        filters: [{ name: "Excel Files", extensions: ["xlsx", "xls"] }],
-        multiple: false,
-      });
-      if (!filePath) {
-        setLoadingExcel(false);
-        return;
-      }
       const data = await invoke("load_technical_data", { filePath });
       setExcelData(data);
-      setShowExcelBanner(false);
-      alert("Excel loaded successfully!");
+      setExcelPath(filePath);
+
+      await invoke("save_excel_path", { project_id: projectId, path: filePath });
+
+      if (!silent) setShowExcelBanner(false);
+      if (!silent) alert("Excel loaded successfully!");
     } catch (err) {
       console.error("Error loading Excel data:", err);
       alert("Eroare la încărcarea Excel.");
@@ -46,7 +61,6 @@ export default function TehnicModal({
     setLoadingExcel(false);
   };
 
-  // dacă s‑au încărcat date din Excel, le folosim, altfel pe cele din props
   const initialTasks = excelData ?? propTasks;
 
   return (
@@ -58,7 +72,6 @@ export default function TehnicModal({
     >
       {isEditor && (
         <>
-          {/* Banner și buton „Adaugă Excel” */}
           {showExcelBanner ? (
             <Box sx={{ position: "relative", mb: 2 }}>
               <IconButton
@@ -68,6 +81,7 @@ export default function TehnicModal({
               >
                 <CloseIcon fontSize="small" />
               </IconButton>
+
               <Box
                 sx={{
                   p: 1,
@@ -81,17 +95,40 @@ export default function TehnicModal({
                   ATENȚIE: Categoriile și subcategoriile tehnice vor fi preluate automat din Excel.
                 </Typography>
               </Box>
-              <Box sx={{ mt: 1, textAlign: "center" }}>
+
+              <Box
+                sx={{
+                  mt: 1,
+                  display: "flex",
+                  gap: 1,
+                  justifyContent: "center",
+                }}
+              >
                 <Button
                   variant="contained"
                   onClick={handleAddExcel}
                   disabled={loadingExcel}
-                  startIcon={
-                    <img src={excelIcon} alt="Excel Icon" style={{ width: 30, height: 30 }} />
-                  }
+                  startIcon={<img src={excelIcon} alt="Excel" style={{ width: 30 }} />}
                 >
-                  {loadingExcel ? "Loading Excel..." : "Adaugă Excel"}
+                  {loadingExcel ? "Loading…" : "Adaugă Excel"}
                 </Button>
+
+                <Tooltip
+                  title={excelPath ? "Reîncarcă fișierul existent" : "Nu există încă un Excel"}
+                  arrow
+                >
+                  <span>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="secondary"
+                      disabled={!excelPath || loadingExcel}
+                      onClick={handleUpdateExcel}
+                    >
+                      Update
+                    </Button>
+                  </span>
+                </Tooltip>
               </Box>
             </Box>
           ) : (
@@ -103,7 +140,7 @@ export default function TehnicModal({
                 onClick={() => setShowExcelBanner(true)}
                 startIcon={
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <img src={excelIcon} alt="Excel Icon" style={{ width: 20, height: 20 }} />
+                    <img src={excelIcon} alt="Excel" style={{ width: 20 }} />
                     {iconHovered ? <VisibilityIcon /> : <VisibilityOffIcon />}
                   </Box>
                 }

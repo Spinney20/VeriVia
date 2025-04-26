@@ -260,15 +260,14 @@ export default function ProjectsView() {
                   justifyContent: "space-between",
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Box sx={{ display: "flex", alignItems: "center", cursor: "pointer" }} onClick={() => toggleExpandProject(proj.id)}>
                   <IconButton
                     size="small"
-                    onClick={() => toggleExpandProject(proj.id)}
                     sx={{ color: "#fff" }}
                   >
                     {expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
                   </IconButton>
-                  <span>
+                  <span style={{ marginLeft: 8 }}>
                     {proj.date} - {proj.title}
                   </span>
                 </Box>
@@ -430,11 +429,13 @@ export default function ProjectsView() {
           mode={modalMode}
           onClose={() => setShowTehnicModal(false)}
           onConfirm={handleTehnicConfirm}
+          projectId={selectedProject.id}
           projectTitle={selectedProject.title}
           initialTasks={
-            selectedProject.categories.find(
-              (c) => c.name.toLowerCase() === "tehnic"
-            )?.checklist
+            selectedProject.categories.find((c) => c.name.toLowerCase() === "tehnic")?.checklist ?? []
+          }
+          excelPath={
+            selectedProject.categories.find((c) => c.name.toLowerCase() === "tehnic")?.excelPath ?? null
           }
         />
       )}

@@ -361,6 +361,40 @@ fn auth_register(mail: String,
     .map_err(|e| e.to_string())
 }
 
+fn set_excel_path(project_id: i64, path: Option<&str>) -> Result<(), String> {
+    let db_path = get_db_path();
+    let txt     = std::fs::read_to_string(&db_path).map_err(|e| e.to_string())?;
+    let mut root: Value = serde_json::from_str(&txt).map_err(|e| e.to_string())?;
+
+    if let Some(prj) = root["projects"]
+        .as_array_mut()
+        .and_then(|arr| arr.iter_mut().find(|p| p["id"] == project_id))
+    {
+        if let Some(cat) = prj["categories"]
+            .as_array_mut()
+            .and_then(|arr| arr.iter_mut().find(|c| c["name"] == "Tehnic"))
+        {
+            match path {
+                Some(p) => {
+                    cat["excelPath"] = Value::String(p.into());
+                },
+                None => {
+                    cat.as_object_mut()
+                       .unwrap()
+                       .remove("excelPath");
+                },
+            }
+        }
+    }
+    std::fs::write(&db_path, serde_json::to_string_pretty(&root).unwrap())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_excel_path(project_id: i64, path: String) -> Result<(), String> {
+    set_excel_path(project_id, Some(&path))
+}
+
 #[tauri::command]
 fn load_config() -> Result<(String, String), String> {
     // aflăm unde e configurarea
@@ -402,7 +436,8 @@ fn load_config() -> Result<(String, String), String> {
               auth_login,
               auth_register,
               load_users,
-              load_config
+              load_config,
+              save_excel_path
           ])
           .run(tauri::generate_context!())
           .expect("error while running tauri application");

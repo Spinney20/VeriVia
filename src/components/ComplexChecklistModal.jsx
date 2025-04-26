@@ -29,9 +29,6 @@ import Tooltip           from "@mui/material/Tooltip";
 
 import { invoke } from "@tauri-apps/api/tauri";
 
-// ──────────────────────────────────────────────────────────────
-//  Componentă reutilizabilă: checkbox cu lock centrat în interior
-// ──────────────────────────────────────────────────────────────
 const LockedCheckbox = React.forwardRef(
   ({ lock, sx, ...others }, ref) => (
     <Box
@@ -78,7 +75,6 @@ const LockedCheckbox = React.forwardRef(
   )
 );
 
-// imediat sub LockedCheckbox (sau oriunde înainte de return)
 const ActionIcon = ({ title, color = "inherit", onClick, children }) => (
   <Tooltip title={title} arrow enterDelay={200}>
     <IconButton
