@@ -25,6 +25,7 @@ import EditIcon          from "@mui/icons-material/Edit";
 import DeleteIcon        from "@mui/icons-material/Delete";
 import NoteIcon          from "@mui/icons-material/NoteAdd";
 import LockIcon          from "@mui/icons-material/Lock";
+import Tooltip           from "@mui/material/Tooltip";
 
 import { invoke } from "@tauri-apps/api/tauri";
 
@@ -76,6 +77,27 @@ const LockedCheckbox = React.forwardRef(
     </Box>
   )
 );
+
+// imediat sub LockedCheckbox (sau oriunde înainte de return)
+const ActionIcon = ({ title, color = "inherit", onClick, children }) => (
+  <Tooltip title={title} arrow enterDelay={200}>
+    <IconButton
+      size="small"
+      onClick={onClick}
+      sx={{
+        color,
+        transition: "transform .15s ease-in-out",
+        "&:hover": {
+          transform: "scale(1.5)",
+          backgroundColor: "rgba(0,0,0,0.04)",
+        },
+      }}
+    >
+      {children}
+    </IconButton>
+  </Tooltip>
+);
+
 
 export default function ComplexChecklistModal({
   open,
@@ -446,7 +468,7 @@ export default function ComplexChecklistModal({
       sx={{
         position: "fixed",
         inset: 0,
-        zIndex: 9999,
+        zIndex: 1300,
         backgroundColor: "rgba(0,0,0,.6)",
         backdropFilter: "blur(12px)",
         display: "flex",
@@ -609,20 +631,27 @@ export default function ComplexChecklistModal({
 
                   {isEditor && (
                     <>
-                      <IconButton
+                      <ActionIcon
+                        title="Editare"
                         onClick={() => startEdit("parent", i, null, item.name)}
-                        size="small"
                       >
                         <EditIcon fontSize="inherit" />
-                      </IconButton>
-                      <IconButton onClick={() => handleDeleteTask(i)} size="small">
+                      </ActionIcon>
+                      <ActionIcon
+                        title="Ștergere"
+                        color="red"
+                        onClick={() => handleDeleteTask(i)}
+                      >
                         <DeleteIcon fontSize="inherit" />
-                      </IconButton>
+                      </ActionIcon>
                     </>
                   )}
-                  <IconButton onClick={() => openNotes("parent", i, null)} size="small">
+                  <ActionIcon
+                    title="Note"
+                    onClick={() => openNotes("parent", i, null)}
+                  >
                     <NoteIcon fontSize="inherit" />
-                  </IconButton>
+                  </ActionIcon>
                 </Box>
 
                 {/* Subtasks */}
@@ -688,26 +717,28 @@ export default function ComplexChecklistModal({
 
                             {isEditor && (
                               <>
-                                <IconButton
-                                  onClick={() => startEdit("child", i, j, sub.name)}
-                                  size="small"
-                                >
-                                  <EditIcon fontSize="inherit" />
-                                </IconButton>
-                                <IconButton
-                                  onClick={() => handleDeleteSubtask(i, j)}
-                                  size="small"
-                                >
-                                  <DeleteIcon fontSize="inherit" />
-                                </IconButton>
-                              </>
+                              <ActionIcon
+                                title="Editare"
+                                onClick={() => startEdit("child", i, j, sub.name)}
+                              >
+                                <EditIcon fontSize="inherit" />
+                              </ActionIcon>
+
+                              <ActionIcon
+                                title="Ștergere"
+                                color="red"
+                                onClick={() => handleDeleteSubtask(i, j)}
+                              >
+                                <DeleteIcon fontSize="inherit" />
+                              </ActionIcon>
+                            </>
                             )}
-                            <IconButton
+                            <ActionIcon
+                              title="Note"
                               onClick={() => openNotes("child", i, j)}
-                              size="small"
                             >
                               <NoteIcon fontSize="inherit" />
-                            </IconButton>
+                            </ActionIcon>
                           </Box>
                         ))}
                       </Box>
