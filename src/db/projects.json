@@ -1,60 +1,53 @@
 {
   "projects": [
     {
-      "id": 6,
-      "title": "TESTFINAL",
-      "date": "05.12.2025",
+      "id": 5,
+      "title": "Proiect nou",
+      "date": "05.22.2025",
       "categories": [
         {
           "name": "Eligibilitate",
           "checklist": [
             {
               "name": "Garantia de participare",
-              "status": "complete",
-              "subTasks": [],
-              "proposed": true,
-              "verified": true
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
             },
             {
               "name": "Acorduri de subcontractare",
-              "status": "complete",
-              "subTasks": [],
-              "proposed": true,
-              "verified": true
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
             },
             {
               "name": "Împuterniciri",
               "status": "incomplete",
-              "subTasks": [],
               "proposed": false,
-              "verified": false
+              "verified": false,
+              "subTasks": []
             },
             {
               "name": "Declarație privind conflictul de interese",
               "status": "incomplete",
-              "subTasks": [],
               "proposed": false,
-              "verified": false
+              "verified": false,
+              "subTasks": []
             },
             {
               "name": "Centralizator experienta similara",
               "status": "incomplete",
-              "subTasks": [],
               "proposed": false,
-              "verified": false
+              "verified": false,
+              "subTasks": []
             },
             {
               "name": "Personal",
               "status": "incomplete",
-              "subTasks": [],
               "proposed": false,
-              "verified": false
-            },
-            {
-              "name": "cinee",
-              "status": "complete",
-              "proposed": true,
-              "verified": true,
+              "verified": false,
               "subTasks": []
             }
           ]
@@ -65,6 +58,8 @@
             {
               "name": "Propunere financiara",
               "status": "incomplete",
+              "proposed": false,
+              "verified": false,
               "subTasks": []
             }
           ]
@@ -79,6 +74,8 @@
             {
               "name": "PTE/PCCVI",
               "status": "incomplete",
+              "proposed": false,
+              "verified": false,
               "subTasks": []
             }
           ]

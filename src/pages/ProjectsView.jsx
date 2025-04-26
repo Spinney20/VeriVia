@@ -320,6 +320,64 @@ export default function ProjectsView() {
         })}
       </Box>
 
+          {/* ───────────── DIALOG „ADAUGĂ PROIECT” ───────────── */}
+    <Dialog open={showModal} onClose={handleCloseModal}>
+      <DialogTitle>Adaugă proiect</DialogTitle>
+
+      <DialogContent>
+        <Stack spacing={2} sx={{ mt: 1, minWidth: 300 }}>
+          <TextField
+            label="Titlu"
+            value={newProjectTitle}
+            onChange={(e) => setNewProjectTitle(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Data (MM.DD.YYYY)"
+            value={newProjectDate}
+            onChange={(e) => setNewProjectDate(e.target.value)}
+            fullWidth
+          />
+        </Stack>
+      </DialogContent>
+
+      <DialogActions>
+        <Button onClick={handleCloseModal}>Anulează</Button>
+        <Button variant="contained" onClick={handleSubmitProject}>
+          Salvează
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    {/* ───────────── DIALOG „EDITEAZĂ PROIECT” ───────────── */}
+    <Dialog open={showEditModal} onClose={() => setShowEditModal(false)}>
+      <DialogTitle>Editează proiect</DialogTitle>
+
+      <DialogContent>
+        <Stack spacing={2} sx={{ mt: 1, minWidth: 300 }}>
+          <TextField
+            label="Titlu"
+            value={editProjectTitle}
+            onChange={(e) => setEditProjectTitle(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Data (MM.DD.YYYY)"
+            value={editProjectDate}
+            onChange={(e) => setEditProjectDate(e.target.value)}
+            fullWidth
+          />
+        </Stack>
+      </DialogContent>
+
+      <DialogActions>
+        <Button onClick={() => setShowEditModal(false)}>Anulează</Button>
+        <Button variant="contained" onClick={handleSubmitEditProject}>
+          Actualizează
+        </Button>
+      </DialogActions>
+    </Dialog>
+
       {/* ───────────── MODALE existente – doar am adăugat prop mode ───────────── */}
       {showEligibilityModal && selectedProject && (
         <EligibilityModal
