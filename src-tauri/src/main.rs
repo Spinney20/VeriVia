@@ -9,6 +9,7 @@
   use std::path::PathBuf;
   use tauri::Manager;
   use tauri::api::dialog::blocking::FileDialogBuilder;
+  use std::sync::{Arc, Mutex};
   use notify::{Watcher, RecursiveMode, Config, event::EventKind};
 
   // ─────────────────── Structuri de date ─────────────────── //
@@ -58,6 +59,8 @@
           subTasks: vec![],
       }
   }
+
+  type SharedWatcher = Arc<Mutex<Option<notify::RecommendedWatcher>>>;
 
   // ───────────── Helper: calea către fişierul DB ───────────── //
 
@@ -503,42 +506,45 @@ fn sync_projects_once() -> Result<(), String> {
     Ok(())
 }
 
-fn spawn_dir_watcher(app_handle: tauri::AppHandle) -> notify::Result<()> {
+fn spawn_dir_watcher(app_handle: tauri::AppHandle)
+    -> notify::Result<notify::RecommendedWatcher>
+{
+    println!("WATCHER PORNIT PE {:?}", get_projects_dir());
+
     let (tx, rx) = std::sync::mpsc::channel();
 
     let mut watcher = notify::recommended_watcher(tx)?;
     watcher.configure(
-        Config::default().with_poll_interval(std::time::Duration::from_secs(2))
+        Config::default()
+            .with_poll_interval(std::time::Duration::from_secs(2))
     )?;
-    watcher.watch(&get_projects_dir(), RecursiveMode::NonRecursive)?;
+    watcher.watch(&get_projects_dir(), RecursiveMode::Recursive)?;
 
+    // thread separat pentru evenimente
     std::thread::spawn(move || {
-        while let Ok(event_result) = rx.recv() {
-            let event = match event_result {
+        while let Ok(event_res) = rx.recv() {
+            let event = match event_res {
                 Ok(ev) => ev,
                 Err(_) => continue,
             };
+            println!("FS EVENT DETECTAT: {:?}", event);
 
-            // ne interesează DOAR directoarele
+            // interes: primul path și să fie director
             if let Some(path) = event.paths.get(0) {
-                if !path.is_dir() { continue; }
-            } else {
-                continue;
-            }
-
-            // orice schimbare ⇒ re-sincronizăm
-            if sync_projects_once().is_ok() {
-                if let Some(folder) = event.paths[0]
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                {
-                    let _ = app_handle.emit_all("project_added", folder.to_string());
+                if !path.is_dir() {
+                    continue;
+                }
+                // re-sincronizează
+                if sync_projects_once().is_ok() {
+                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                        let _ = app_handle.emit_all("project_added", name.to_string());
+                    }
                 }
             }
         }
     });
 
-    Ok(())
+    Ok(watcher)
 }
 
   // ───────────────────── main() ───────────────────── //
@@ -551,15 +557,20 @@ fn spawn_dir_watcher(app_handle: tauri::AppHandle) -> notify::Result<()> {
             auth_login, auth_register, load_users, load_config,
             save_excel_path
         ])
+        .manage::<SharedWatcher>(Arc::new(Mutex::new(None)))
         .setup(|app| {
-            // sincronizare iniţială (ignorăm eroarea – o scriem doar în log)
+            // 1) sincronizare iniţială
             if let Err(e) = sync_projects_once() {
                 eprintln!("Initial sync error: {e}");
             }
 
-            // pornim watcher-ul; dacă pică nu blocăm aplicaţia
-            if let Err(e) = spawn_dir_watcher(app.handle()) {
-                eprintln!("Watcher error: {e}");
+            // 2) porneşte watcher-ul şi salvează-l în State
+            match spawn_dir_watcher(app.handle()) {
+                Ok(w) => {
+                    let shared = app.state::<SharedWatcher>();
+                    *shared.lock().unwrap() = Some(w);    // ↙ păstrăm watcher-ul
+                }
+                Err(e) => eprintln!("Watcher error: {e}"),
             }
 
             Ok(())

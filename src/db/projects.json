@@ -1,6 +1,252 @@
 {
   "projects": [
     {
+      "id": 13,
+      "title": "testWatchFinal",
+      "date": "05.30.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Acorduri de subcontractare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Împuterniciri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind conflictul de interese",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": [
+            {
+              "name": "Propunere financiara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Tehnic",
+          "checklist": []
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": [
+            {
+              "name": "PTE/PCCVI",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "testprint",
+      "date": "05.28.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Acorduri de subcontractare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Împuterniciri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind conflictul de interese",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": [
+            {
+              "name": "Propunere financiara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Tehnic",
+          "checklist": []
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": [
+            {
+              "name": "PTE/PCCVI",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Test Watcher2",
+      "date": "05.27.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Acorduri de subcontractare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Împuterniciri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind conflictul de interese",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": [
+            {
+              "name": "Propunere financiara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Tehnic",
+          "checklist": []
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": [
+            {
+              "name": "PTE/PCCVI",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": 10,
       "title": "Test Watcher",
       "date": "05.25.2025",
