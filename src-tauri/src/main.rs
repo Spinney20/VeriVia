@@ -109,23 +109,43 @@
   }
 
   fn get_projects_dir() -> PathBuf {
-    let exe_dir   = std::env::current_exe()
+    let exe_dir  = std::env::current_exe()
         .unwrap()
         .parent()
         .unwrap()
         .to_path_buf();
-    let cfg_path  = exe_dir.join("config.json");
+    let cfg_path = exe_dir.join("config.json");
 
-    if let Ok(txt) = std::fs::read_to_string(&cfg_path) {
-        if let Ok(v) = serde_json::from_str::<Value>(&txt) {
-            if let Some(p) = v.get("projects_dir").and_then(|x| x.as_str()) {
-                return PathBuf::from(p);
+    if cfg_path.exists() {
+        if let Ok(cfg_txt) = std::fs::read_to_string(&cfg_path) {
+            if let Ok(mut v) = serde_json::from_str::<Value>(&cfg_txt) {
+                if let Some(p_dir) = v.get_mut("projects_dir") {
+                    let path_str = p_dir.as_str().unwrap_or("").trim();
+
+                    // ───── 1) dacă DEJA avem o cale validă ─────
+                    if !path_str.is_empty() {
+                        return PathBuf::from(path_str);
+                    }
+
+                    // ───── 2) string gol  →  cerem utilizatorului ─────
+                    if let Some(chosen) = FileDialogBuilder::new()
+                        .set_title("Alege folderul în care se află proiectele (Publice)")
+                        .pick_folder()
+                    {
+                        *p_dir = Value::String(chosen.to_string_lossy().into_owned());
+                        // salvăm imediat noua cale în config
+                        let _ = std::fs::write(&cfg_path, serde_json::to_string_pretty(&v).unwrap());
+                        return chosen;
+                    }
+                }
             }
         }
     }
-    // fallback → pentru testare locală:
+
+    // ───── 3) fallback hard-coded dacă utilizatorul apasă Cancel ─────
     PathBuf::from("C:\\Users\\Andrei Teodor Dobre\\Desktop\\Facultate\\viarom\\Ofertare - 2025\\Publice")
 }
+
 
   #[tauri::command]
   fn save_projects(new_data: String) -> Result<(), String> {
