@@ -8,7 +8,8 @@
   use std::fs;
   use std::path::PathBuf;
   use tauri::Manager;
-  use tauri::api::dialog::blocking::FileDialogBuilder; // <-- file picker
+  use tauri::api::dialog::blocking::FileDialogBuilder;
+  use notify::{Watcher, RecursiveMode, Config, event::EventKind};
 
   // ─────────────────── Structuri de date ─────────────────── //
 
@@ -104,9 +105,27 @@
       Ok(json_value)
   }
 
+  fn get_projects_dir() -> PathBuf {
+    let exe_dir   = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    let cfg_path  = exe_dir.join("config.json");
+
+    if let Ok(txt) = std::fs::read_to_string(&cfg_path) {
+        if let Ok(v) = serde_json::from_str::<Value>(&txt) {
+            if let Some(p) = v.get("projects_dir").and_then(|x| x.as_str()) {
+                return PathBuf::from(p);
+            }
+        }
+    }
+    // fallback → pentru testare locală:
+    PathBuf::from("C:\\Users\\Andrei Teodor Dobre\\Desktop\\Facultate\\viarom\\Ofertare - 2025\\Publice")
+}
+
   #[tauri::command]
   fn save_projects(new_data: String) -> Result<(), String> {
-      // 1) validăm
       let mut root: Value = serde_json::from_str(&new_data).map_err(|e| e.to_string())?;
 
       // 2) sortăm projects descrescător după dată (rămânem în Value, nu mai pierdem câmpuri!)
@@ -249,7 +268,6 @@
       Ok(Value::Array(tech))
   }
 
-  // edit / delete proiect – lucrează exclusiv pe Value şi apoi reusează save_projects
   #[tauri::command]
   fn edit_project(id: i64, new_title: String, new_date: String) -> Result<(), String> {
       let path = get_db_path();
@@ -422,23 +440,130 @@ fn load_config() -> Result<(String, String), String> {
     Ok((db_path, users_path))
 }
 
+lazy_static! {
+    static ref RE_FOLDER: Regex = Regex::new(
+        r"(?i)^(\d{2}\.\d{2})\s*[- ]\s*(.+)$"   // exemplu "04.28 - Proiect Test"
+    ).unwrap();
+}
+
+fn parse_folder_name(name: &str) -> Option<(String, String)> {
+    let caps = RE_FOLDER.captures(name.trim())?;
+    let date  = caps.get(1)?.as_str().to_string();
+    let title = caps.get(2)?.as_str().trim().to_string();
+    Some((date, title))
+}
+
+fn sync_projects_once() -> Result<(), String> {
+    use std::collections::HashMap;
+    use std::fs;
+
+    let dir = get_projects_dir();          // helperul adăugat în răspunsul anterior
+    let dbp = get_db_path();
+
+    // 1) citim DB-ul în memorie
+    let txt   = fs::read_to_string(&dbp).map_err(|e| e.to_string())?;
+    let mut root: Value = serde_json::from_str(&txt).map_err(|e| e.to_string())?;
+
+    // 2) mapăm (titlu → (id, date))
+    let mut by_title: HashMap<String, (i64, String)> = HashMap::new();
+    if let Some(arr) = root["projects"].as_array() {
+        for p in arr {
+            if let (Some(id), Some(title), Some(date)) =
+                (p["id"].as_i64(), p["title"].as_str(), p["date"].as_str())
+            {
+                by_title.insert(title.to_lowercase(), (id, date.to_string()));
+            }
+        }
+    }
+
+    // 3) iterăm prin folderele de pe disc
+    for entry in fs::read_dir(&dir).map_err(|e| e.to_string())? {
+        let path = entry.map_err(|e| e.to_string())?.path();
+        if !path.is_dir() { continue; }
+
+        let folder_name = path.file_name().unwrap().to_string_lossy();
+        let Some((date_part, title_part)) = parse_folder_name(&folder_name) else { continue };
+
+        match by_title.get(&title_part.to_lowercase()) {
+            // 3a) titlul există deja
+            Some(&(id, ref old_date)) if *old_date != date_part => {
+                // data diferă → actualizează prin edit_project
+                edit_project(id, title_part.clone(), format!("{}.2025", date_part))?;
+            }
+            // 3b) titlul NU există → adaugă proiect nou
+            None => {
+                add_project(
+                    title_part.clone(),
+                    format!("{}.2025", date_part)
+                )?;
+            }
+            _ => {} // dacă data e aceeaşi, nu facem nimic
+        }
+    }
+    Ok(())
+}
+
+fn spawn_dir_watcher(app_handle: tauri::AppHandle) -> notify::Result<()> {
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    let mut watcher = notify::recommended_watcher(tx)?;
+    watcher.configure(
+        Config::default().with_poll_interval(std::time::Duration::from_secs(2))
+    )?;
+    watcher.watch(&get_projects_dir(), RecursiveMode::NonRecursive)?;
+
+    std::thread::spawn(move || {
+        while let Ok(event_result) = rx.recv() {
+            let event = match event_result {
+                Ok(ev) => ev,
+                Err(_) => continue,
+            };
+
+            // ne interesează DOAR directoarele
+            if let Some(path) = event.paths.get(0) {
+                if !path.is_dir() { continue; }
+            } else {
+                continue;
+            }
+
+            // orice schimbare ⇒ re-sincronizăm
+            if sync_projects_once().is_ok() {
+                if let Some(folder) = event.paths[0]
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                {
+                    let _ = app_handle.emit_all("project_added", folder.to_string());
+                }
+            }
+        }
+    });
+
+    Ok(())
+}
+
   // ───────────────────── main() ───────────────────── //
 
   fn main() {
-      tauri::Builder::default()
-          .invoke_handler(tauri::generate_handler![
-              load_projects,
-              save_projects,
-              add_project,
-              load_technical_data,
-              edit_project,
-              delete_project,
-              auth_login,
-              auth_register,
-              load_users,
-              load_config,
-              save_excel_path
-          ])
-          .run(tauri::generate_context!())
-          .expect("error while running tauri application");
-  }
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            load_projects, save_projects, add_project,      // … restul
+            load_technical_data, edit_project, delete_project,
+            auth_login, auth_register, load_users, load_config,
+            save_excel_path
+        ])
+        .setup(|app| {
+            // sincronizare iniţială (ignorăm eroarea – o scriem doar în log)
+            if let Err(e) = sync_projects_once() {
+                eprintln!("Initial sync error: {e}");
+            }
+
+            // pornim watcher-ul; dacă pică nu blocăm aplicaţia
+            if let Err(e) = spawn_dir_watcher(app.handle()) {
+                eprintln!("Watcher error: {e}");
+            }
+
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+    }

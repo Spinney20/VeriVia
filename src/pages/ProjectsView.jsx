@@ -29,6 +29,7 @@ import TehnicModal from "../components/TehnicModal";
 
 import { useAuth }     from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { listen } from "@tauri-apps/api/event";
 
 export default function ProjectsView() {
   const [expandedProjects, setExpandedProjects] = useState([]);
@@ -77,7 +78,16 @@ export default function ProjectsView() {
     }
   }
   useEffect(() => {
-    fetchDbData();
+    fetchDbData(); // îl lăsăm să facă fetch inițial
+
+    const unlistenPromise = listen("project_added", () => {
+      fetchDbData(); // și când vine eventul
+    });
+
+    return () => {
+      // cleanup corect la închiderea componentei
+      unlistenPromise.then((unlisten) => unlisten());
+    };
   }, []);
 
   /* ───────────── helper × expand/collapse ───────────── */

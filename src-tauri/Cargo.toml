@@ -22,6 +22,7 @@ calamine = "0.18"
 regex = "1.8"
 lazy_static = "1.4"
 bcrypt = "0.14"
+notify = { version = "6", features = ["serde"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
