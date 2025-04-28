@@ -1,6 +1,89 @@
 {
   "projects": [
     {
+      "id": 19,
+      "title": "Anais",
+      "date": "10.26.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Acorduri de subcontractare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Împuterniciri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind conflictul de interese",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": [
+            {
+              "name": "Propunere financiara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Tehnic",
+          "checklist": []
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": [
+            {
+              "name": "PTE/PCCVI",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        }
+      ],
+      "path": "C:\\Users\\Andrei Teodor Dobre\\Desktop\\Facultate\\viarom\\Ofertare - 2025\\Publice\\10.26 Anais"
+    },
+    {
       "id": 18,
       "title": "test_path",
       "date": "06.01.2025",

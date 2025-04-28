@@ -77,16 +77,20 @@ export default function ProjectsView() {
 
   /* ───────────── load DB ───────────── */
   // ───────── ani disponibili ─────────
-const loadYears = async () => {
-  try {
-    const y = await invoke("list_years");     // ["2025","2026",…]
-    const sorted = [...y].sort();
-    setYears(sorted);
-    if (!currentYear && sorted.length) setCurrentYear(sorted[sorted.length - 1]);
-  } catch (e) {
-    console.error("list_years:", e);
-  }
-};
+  const loadYears = async () => {
+    try {
+      const [ y, active ] = await Promise.all([
+        invoke("list_years"),
+        invoke("get_active_year")
+      ]);
+      const sorted = [...y].sort((a, b) => Number(a) - Number(b));
+      setYears(sorted);
+      // setăm direct anul curent pe ce ne-a trimis backend-ul
+      setCurrentYear(active);
+    } catch (e) {
+      console.error("loadYears:", e);
+    }
+  };
 
 const handleSwitchYear = async (yr) => {
   try {

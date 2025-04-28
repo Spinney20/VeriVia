@@ -7,10 +7,20 @@
   use serde_json::{json, Value};
   use std::fs;
   use std::path::PathBuf;
-  use tauri::{Manager, api::shell};
   use tauri::api::dialog::blocking::FileDialogBuilder;
   use std::sync::{Arc, Mutex};
   use notify::{Watcher, RecursiveMode, Config};
+  use tauri::{Manager, State, AppHandle, api::shell};
+
+  struct AppState {
+    current_year: Mutex<Option<String>>,
+  }
+
+  impl Default for AppState {
+    fn default() -> Self {
+      AppState { current_year: Mutex::new(None) }
+    }
+  }
 
   // ─────────── utilitare config & disc ───────────
     fn exe_dir() -> PathBuf {
@@ -710,35 +720,68 @@ fn open_folder(app: tauri::AppHandle, path: String) -> Result<(), String> {
     tauri::api::shell::open(&app.shell_scope(), &path, None)
         .map_err(|e| e.to_string())
 }
-  // ───────────────────── main() ───────────────────── //
+#[tauri::command]
+fn get_active_year(state: State<'_, AppState>) -> Result<String, String> {
+    state
+      .current_year
+      .lock()
+      .unwrap()
+      .clone()
+      .ok_or_else(|| "Current year not initialized".into())
+}
 
-  fn main() {
+fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            load_projects, save_projects, add_project,      // … restul
-            load_technical_data, edit_project, delete_project,
-            auth_login, auth_register, load_users, load_config,
-            save_excel_path,
-            list_years, switch_year, add_year, open_folder
-        ])
+        // Inject shared watcher
         .manage::<SharedWatcher>(Arc::new(Mutex::new(None)))
+        .manage(AppState::default())
+
+        // Setup: run exactly once at startup
         .setup(|app| {
-            // 1) sincronizare iniţială
+            // 1) listează și sortează ani
+            let mut years = list_years()?;  // direct, fără `app.invoke_handler()`
+            years.sort_by_key(|y| y.parse::<u32>().unwrap());
+
+            // 2) pick și setează în state
+            let last_year = years.last().unwrap().clone();
+            {
+                let st: State<'_, AppState> = app.state();
+                *st.current_year.lock().unwrap() = Some(last_year.clone());
+            }
+
+            // 3) fac switch o singură dată
+            switch_year(app.handle(), last_year)?;
+
+            // 4) restul setup-ului (sync, watcher etc.)
             if let Err(e) = sync_projects_once() {
-                eprintln!("Initial sync error: {e}");
+                eprintln!("Initial sync error: {}", e);
             }
-
-            // 2) porneşte watcher-ul şi salvează-l în State
-            match spawn_dir_watcher(app.handle()) {
-                Ok(w) => {
-                    let shared = app.state::<SharedWatcher>();
-                    *shared.lock().unwrap() = Some(w);    // ↙ păstrăm watcher-ul
-                }
-                Err(e) => eprintln!("Watcher error: {e}"),
+            if let Ok(w) = spawn_dir_watcher(app.handle()) {
+                let shared = app.state::<SharedWatcher>();
+                *shared.lock().unwrap() = Some(w);
             }
-
             Ok(())
         })
+
+        // Expose commands including the new one
+        .invoke_handler(tauri::generate_handler![
+            load_projects,
+            save_projects,
+            add_project,
+            edit_project,
+            delete_project,
+            list_years,
+            switch_year,
+            add_year,
+            get_active_year,
+            open_folder,
+            load_technical_data,
+            auth_login,
+            auth_register,
+            load_users,
+            load_config,
+            save_excel_path
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-    }
+}
