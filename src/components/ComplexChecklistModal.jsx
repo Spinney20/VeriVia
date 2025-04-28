@@ -28,6 +28,7 @@ import LockIcon          from "@mui/icons-material/Lock";
 import Tooltip           from "@mui/material/Tooltip";
 
 import { invoke } from "@tauri-apps/api/tauri";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 
 const LockedCheckbox = React.forwardRef(
   ({ lock, sx, ...others }, ref) => (
@@ -108,6 +109,7 @@ export default function ComplexChecklistModal({
   initialTasks = [],
   excelPath = null,
   children,
+  projectPath = null,
 }) {
   // -----------------------------------------------------
   // HOOKS & STATE
@@ -145,6 +147,15 @@ export default function ComplexChecklistModal({
     const all  = item.subTasks.every((st) => st.status === "complete");
     const some = item.subTasks.some((st) => st.status === "complete");
     return { checked: all, indeterminate: some && !all };
+  };
+
+  const handleOpenFolder = async () => {
+    if (!projectPath) return;
+    try {
+     await invoke("open_folder", { path: projectPath });
+    } catch (e) {
+      console.error("Eroare la deschiderea folderului:", e);
+    }
   };
 
   const getFlagState = (item, flag) => {

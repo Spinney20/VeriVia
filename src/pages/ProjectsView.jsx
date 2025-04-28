@@ -565,6 +565,7 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
               (c) => c.name.toLowerCase() === "eligibilitate"
             )?.checklist
           }
+          projectPath={selectedProject.path || null}
         />
       )}
 
@@ -580,6 +581,7 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
               (c) => c.name.toLowerCase() === "financiar"
             )?.checklist
           }
+          projectPath={selectedProject.path || null}
         />
       )}
 
@@ -595,6 +597,7 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
               (c) => c.name.toLowerCase() === "pte/pccvi"
             )?.checklist
           }
+          projectPath={selectedProject.path || null}
         />
       )}
 
@@ -616,6 +619,7 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
        selectedProject.categories.find(c => c.name.toLowerCase() === "tehnic")
          ?.excelPath ?? null
      }
+     projectPath={selectedProject.path || null}
    />
 )}
 

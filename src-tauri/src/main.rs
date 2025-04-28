@@ -7,7 +7,7 @@
   use serde_json::{json, Value};
   use std::fs;
   use std::path::PathBuf;
-  use tauri::Manager;
+  use tauri::{Manager, api::shell};
   use tauri::api::dialog::blocking::FileDialogBuilder;
   use std::sync::{Arc, Mutex};
   use notify::{Watcher, RecursiveMode, Config};
@@ -611,11 +611,25 @@ fn sync_projects_once() -> Result<(), String> {
             }
             // 3b) titlul NU există → adaugă proiect nou
             None => {
-                add_project(
-                    title_part.clone(),
-                    format!("{}.2025", date_part)
-                )?;
-            }
+                                // 1) Create the new project (this writes to disk)
+                                add_project(
+                                  title_part.clone(),
+                                  format!("{}.2025", date_part)
+                                )?;
+
+                                // 2) Fetch its new ID (max of all IDs)
+                                let db_val = fs::read_to_string(&dbp).map_err(|e| e.to_string())?;
+                                let json_val: Value = serde_json::from_str(&db_val).map_err(|e| e.to_string())?;
+                                let new_id = json_val["projects"]
+                                    .as_array().unwrap()
+                                    .iter()
+                                    .filter_map(|p| p["id"].as_i64())
+                                    .max()
+                                    .unwrap();
+
+                                // 3) Save the folder path into the new project record
+                                save_project_folder(new_id, path.to_string_lossy().into_owned())?;
+                            }
             _ => {} // dacă data e aceeaşi, nu facem nimic
         }
     }
@@ -663,6 +677,39 @@ fn spawn_dir_watcher(app_handle: tauri::AppHandle)
     Ok(watcher)
 }
 
+// ==================== FOLDERE PENTRU PROIECTE ONEDRIVE =========== //
+fn set_project_folder(project_id: i64, folder: Option<&str>) -> Result<(), String> {
+    let db_path = get_db_path();
+    let txt     = fs::read_to_string(&db_path).map_err(|e| e.to_string())?;
+    let mut root: Value = serde_json::from_str(&txt).map_err(|e| e.to_string())?;
+
+    if let Some(prj) = root["projects"]
+        .as_array_mut()
+        .and_then(|arr| arr.iter_mut().find(|p| p["id"] == project_id))
+    {
+        match folder {
+            Some(f) => { prj["path"] = Value::String(f.into()); }
+            None    => { prj.as_object_mut().unwrap().remove("path"); }
+        }
+    }
+    fs::write(&db_path, serde_json::to_string_pretty(&root).unwrap())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_project_folder(project_id: i64, folder: String) -> Result<(), String> {
+    set_project_folder(project_id, Some(&folder))
+}
+
+#[tauri::command]
+fn open_folder(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        return Err(format!("Calea '{}' nu mai există pe disc.", path));
+    }
+    tauri::api::shell::open(&app.shell_scope(), &path, None)
+        .map_err(|e| e.to_string())
+}
   // ───────────────────── main() ───────────────────── //
 
   fn main() {
@@ -672,7 +719,7 @@ fn spawn_dir_watcher(app_handle: tauri::AppHandle)
             load_technical_data, edit_project, delete_project,
             auth_login, auth_register, load_users, load_config,
             save_excel_path,
-            list_years, switch_year, add_year
+            list_years, switch_year, add_year, open_folder
         ])
         .manage::<SharedWatcher>(Arc::new(Mutex::new(None)))
         .setup(|app| {

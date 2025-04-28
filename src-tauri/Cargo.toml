@@ -15,7 +15,7 @@ rust-version = "1.60"
 tauri-build = { version = "1.5.5", features = [] }
 
 [dependencies]
-tauri = { version = "1", features = [ "dialog-open"] }
+tauri = { version = "1", features = [ "shell-all", "dialog-open"] }
 serde = "1.0"
 serde_json = "1.0"
 calamine = "0.18"
