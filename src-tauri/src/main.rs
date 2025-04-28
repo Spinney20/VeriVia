@@ -287,13 +287,13 @@
   use lazy_static::lazy_static;
 
   fn is_subtask_name(name: &str) -> bool {
-      lazy_static! {
-          static ref RE_SUB: Regex = Regex::new(
-              r"^( {2,}|[><\-\*]|(i|ii|iii|iv|v|vi|vii|viii|ix|x)\b|\d+\.\d+)"
-          ).unwrap();
-      }
-      RE_SUB.is_match(name.trim_start())
-  }
+    lazy_static! {
+        static ref RE_SUB: Regex = Regex::new(
+            r"^( {2,}|[><\-\*]|(i|ii|iii|iv|v|vi|vii|viii|ix|x)\b|\d+\.\d+|[a-zA-Z][\.\)])"
+        ).unwrap();
+    }
+    RE_SUB.is_match(name.trim_start())
+}
 
   #[tauri::command]
   fn load_technical_data(file_path: String) -> Result<Value, String> {

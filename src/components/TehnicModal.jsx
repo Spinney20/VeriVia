@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import ComplexChecklistModal from "./ComplexChecklistModal";
 import { invoke } from "@tauri-apps/api/tauri";
 import { open } from "@tauri-apps/api/dialog";
@@ -20,10 +21,11 @@ export default function TehnicModal({
   excelPath: initialPath,
   ...props
 }) {
-  const [loadingExcel, setLoadingExcel]       = useState(false);
-  const [excelData, setExcelData]             = useState(null);
-  const [excelPath, setExcelPath]             = useState(initialPath);
-  const [showExcelBanner, setShowExcelBanner] = useState(false);
+const [loadingExcel, setLoadingExcel]       = useState(false);
+const [excelData, setExcelData]             = useState(null);
+const [excelPath, setExcelPath]             = useState(initialPath);
+  // afișează banner dacă există deja un path salvat
+  const [showExcelBanner, setShowExcelBanner] = useState(!!initialPath);
   const [iconHovered, setIconHovered]         = useState(false);
 
   const isEditor = mode === "editor";
@@ -37,10 +39,15 @@ export default function TehnicModal({
     if (filePath) await loadExcel(filePath);
   };
 
-  /* update rapid */
-  const handleUpdateExcel = async () => {
-    if (excelPath) await loadExcel(excelPath, true);
-  };
+
+const handleUpdateExcel = async () => {
+  if (excelPath) await loadExcel(excelPath);
+};
+useEffect(() => {
+  if (open && initialPath && !excelData) {
+    loadExcel(initialPath, true);
+  }
+}, [open, initialPath]);
 
   /* loader comun */
   const loadExcel = async (filePath, silent = false) => {
@@ -69,6 +76,7 @@ export default function TehnicModal({
       mode={mode}
       categoryName="Tehnic"
       initialTasks={initialTasks}
+      excelPath={excelPath}
     >
       {isEditor && (
         <>

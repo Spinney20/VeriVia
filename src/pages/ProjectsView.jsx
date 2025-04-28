@@ -259,18 +259,22 @@ const handleAddYear = async () => {
     saveChecklist(updatedTasks, "financiar");
   const handlePteConfirm = async (updatedTasks) =>
     saveChecklist(updatedTasks, "pte/pccvi");
-  const handleTehnicConfirm = async (updatedTasks) =>
-    saveChecklist(updatedTasks, "tehnic");
+  const handleTehnicConfirm = async (updatedTasks, excelPath) =>
+    saveChecklist(updatedTasks, excelPath, "tehnic");
 
-  const saveChecklist = async (updatedTasks, catKey) => {
+  const saveChecklist = async (updatedTasks, catKey, excelPath = null) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
       if (proj.id === selectedProject.id) {
-        const updatedCategories = proj.categories.map((cat) =>
-          cat.name.toLowerCase() === catKey
-            ? { ...cat, checklist: updatedTasks }
-            : cat
-        );
+        const updatedCategories = proj.categories.map((cat) => {
+          if (cat.name.toLowerCase() !== catKey) return cat;
+          // pentru Tehnic includem și excelPath:
+          return {
+          ...cat,
+          checklist: updatedTasks,
+          excelPath: excelPath,
+          };
+          });
         return { ...proj, categories: updatedCategories };
       }
       return proj;
@@ -564,7 +568,8 @@ const handleAddYear = async () => {
           open={showTehnicModal}
           mode={modalMode}
           onClose={() => setShowTehnicModal(false)}
-          onConfirm={handleTehnicConfirm}
+          onConfirm={(updatedTasks, excelPath) =>
+            +   saveChecklist(updatedTasks, "tehnic", excelPath)}
           projectId={selectedProject.id}
           projectTitle={selectedProject.title}
           initialTasks={

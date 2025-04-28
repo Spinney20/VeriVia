@@ -106,6 +106,7 @@ export default function ComplexChecklistModal({
   userName     = "NumeUtilizator",
   categoryName = "Eligibilitate",
   initialTasks = [],
+  excelPath = null,
   children,
 }) {
   // -----------------------------------------------------
@@ -169,7 +170,10 @@ export default function ComplexChecklistModal({
         const category = project.categories?.find((c) => c.name === categoryName);
         if (!category) return;
 
-        const raw = category.checklist?.length ? category.checklist : initialTasks;
+        const raw =
+(categoryName === "Tehnic" && initialTasks?.length)      ? initialTasks
+: (category.checklist?.length)                             ? category.checklist
+                                                           : initialTasks;
 
         const addFlags = (t) => ({
           ...t,
@@ -407,7 +411,12 @@ export default function ComplexChecklistModal({
     );
     if (cIdx === -1) return;
 
-    updated.projects[pIdx].categories[cIdx].checklist = items;
+    const cat = updated.projects[pIdx].categories[cIdx];
+    cat.checklist = items;
+
+    if (excelPath) {
+      cat.excelPath = excelPath;
+    }
 
     try {
       await invoke("save_projects", {
