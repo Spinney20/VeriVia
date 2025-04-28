@@ -259,10 +259,45 @@ const handleAddYear = async () => {
     saveChecklist(updatedTasks, "financiar");
   const handlePteConfirm = async (updatedTasks) =>
     saveChecklist(updatedTasks, "pte/pccvi");
-  const handleTehnicConfirm = async (updatedTasks, excelPath) =>
-    saveChecklist(updatedTasks, excelPath, "tehnic");
+  // ① correct parameter order, ② close the modal when done
+const handleTehnicConfirm = async (updatedTasks) => {
+  // save just the tasks (excelPath has already been saved on load/update)
+  await saveChecklist(updatedTasks, "tehnic")
+  setShowTehnicModal(false)
+  fetchDbData();
+}
 
-  const saveChecklist = async (updatedTasks, catKey, excelPath = null) => {
+
+const handleExcelPathSaved = async (newPath) => {
+  // 1) Actualizează starea locală
+  setDbData((d) => ({
+    projects: d.projects.map((p) =>
+      p.id !== selectedProject.id
+        ? p
+        : {
+            ...p,
+            categories: p.categories.map((cat) =>
+              cat.name.toLowerCase() !== "tehnic"
+                ? cat
+                : { ...cat, excelPath: newPath }
+            ),
+          }
+    ),
+  }));
+  setSelectedProject((sp) => ({
+    ...sp,
+    categories: sp.categories.map((cat) =>
+      cat.name.toLowerCase() !== "tehnic"
+        ? cat
+        : { ...cat, excelPath: newPath }
+    ),
+  }));
+
+  // 2) Reîncarcă datele din backend pentru a asigura sincronizarea
+  await fetchDbData();
+};
+
+const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
       if (proj.id === selectedProject.id) {
@@ -272,7 +307,7 @@ const handleAddYear = async () => {
           return {
           ...cat,
           checklist: updatedTasks,
-          excelPath: excelPath,
+          ...(newExcelPath !== undefined && { excelPath: newExcelPath })
           };
           });
         return { ...proj, categories: updatedCategories };
@@ -563,23 +598,28 @@ const handleAddYear = async () => {
         />
       )}
 
-      {showTehnicModal && selectedProject && (
-        <TehnicModal
-          open={showTehnicModal}
-          mode={modalMode}
-          onClose={() => setShowTehnicModal(false)}
-          onConfirm={(updatedTasks, excelPath) =>
-            +   saveChecklist(updatedTasks, "tehnic", excelPath)}
-          projectId={selectedProject.id}
-          projectTitle={selectedProject.title}
-          initialTasks={
-            selectedProject.categories.find((c) => c.name.toLowerCase() === "tehnic")?.checklist ?? []
-          }
-          excelPath={
-            selectedProject.categories.find((c) => c.name.toLowerCase() === "tehnic")?.excelPath ?? null
-          }
-        />
-      )}
+{showTehnicModal && selectedProject && (
+   <TehnicModal
+     key={selectedProject.id + '_' + (selectedProject.categories.find(c => c.name.toLowerCase() === 'tehnic')?.excelPath || 'noexcel')}
+     open={showTehnicModal}
+     mode={modalMode}
+     onClose={() => setShowTehnicModal(false)}
+     onConfirm={handleTehnicConfirm}
+     onExcelPathSaved={handleExcelPathSaved}
+     projectId={selectedProject.id}
+     projectTitle={selectedProject.title}
+     initialTasks={
+       selectedProject.categories.find(c => c.name.toLowerCase() === "tehnic")
+         ?.checklist ?? []
+     }
+     excelPath={
+       selectedProject.categories.find(c => c.name.toLowerCase() === "tehnic")
+         ?.excelPath ?? null
+     }
+   />
+)}
+
+
 
       {/* ───────────── dialog alegere rol ───────────── */}
       <Dialog

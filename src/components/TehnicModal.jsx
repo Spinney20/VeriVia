@@ -1,17 +1,16 @@
-
 import React, { useState, useEffect } from "react";
 import ComplexChecklistModal from "./ComplexChecklistModal";
 import { invoke } from "@tauri-apps/api/tauri";
-import { open } from "@tauri-apps/api/dialog";
+import { open as openDialog } from "@tauri-apps/api/dialog";
 
-import Box               from "@mui/material/Box";
-import Button            from "@mui/material/Button";
-import Typography        from "@mui/material/Typography";
-import IconButton        from "@mui/material/IconButton";
-import Tooltip           from "@mui/material/Tooltip";
-import CloseIcon         from "@mui/icons-material/Close";
-import excelIcon         from "../images/excel.png";
-import VisibilityIcon    from "@mui/icons-material/Visibility";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import CloseIcon from "@mui/icons-material/Close";
+import excelIcon from "../images/excel.png";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 export default function TehnicModal({
@@ -19,35 +18,64 @@ export default function TehnicModal({
   initialTasks: propTasks,
   projectId,
   excelPath: initialPath,
+  open,
+  onClose,
+  onConfirm,
+  onExcelPathSaved,
   ...props
 }) {
-const [loadingExcel, setLoadingExcel]       = useState(false);
-const [excelData, setExcelData]             = useState(null);
-const [excelPath, setExcelPath]             = useState(initialPath);
-  // afișează banner dacă există deja un path salvat
+  const [loadingExcel, setLoadingExcel] = useState(false);
+  const [excelData, setExcelData] = useState(null);
+  const [excelPath, setExcelPath] = useState(initialPath);
   const [showExcelBanner, setShowExcelBanner] = useState(!!initialPath);
-  const [iconHovered, setIconHovered]         = useState(false);
+  const [iconHovered, setIconHovered] = useState(false);
 
   const isEditor = mode === "editor";
 
+  // sincronizează excelPath local cu prop
+  useEffect(() => {
+    if (initialPath !== excelPath) {
+      setExcelPath(initialPath);
+      if (initialPath) {
+        // Reîncarcă datele Excel dacă initialPath s-a schimbat
+        loadExcel(initialPath, true); // silent=true pentru a nu afișa alert
+      }
+    }
+  }, [initialPath]);
+
+    useEffect(() => {
+        if (!open) return;
+        (async () => {
+          try {
+            const data = await invoke("load_projects");
+            const proj = data.projects.find(p => p.id === projectId);
+            const cat  = proj.categories.find(c => c.name.toLowerCase() === "tehnic");
+            const dbPath = cat?.excelPath || null;
+            setExcelPath(dbPath);
+            setShowExcelBanner(!!dbPath);
+          } catch (err) {
+            console.error("Eroare la fetch proiect:", err);
+          }
+        })();
+      }, [open, projectId]);
+
+
   /* încărcare nouă */
   const handleAddExcel = async () => {
-    const filePath = await open({
-      filters : [{ name: "Excel Files", extensions: ["xlsx", "xls"] }],
+    const filePath = await openDialog({
+      filters: [{ name: "Excel Files", extensions: ["xlsx", "xls"] }],
       multiple: false,
     });
-    if (filePath) await loadExcel(filePath);
+    if (filePath) {
+      await loadExcel(filePath);
+    }
   };
 
-
-const handleUpdateExcel = async () => {
-  if (excelPath) await loadExcel(excelPath);
-};
-useEffect(() => {
-  if (open && initialPath && !excelData) {
-    loadExcel(initialPath, true);
-  }
-}, [open, initialPath]);
+  const handleUpdateExcel = async () => {
+    if (excelPath) {
+      await loadExcel(excelPath);
+    }
+  };
 
   /* loader comun */
   const loadExcel = async (filePath, silent = false) => {
@@ -58,8 +86,12 @@ useEffect(() => {
       setExcelPath(filePath);
 
       await invoke("save_excel_path", { project_id: projectId, path: filePath });
+      onExcelPathSaved?.(filePath);
 
-      if (!silent) setShowExcelBanner(false);
+      if (!silent) {
+        // ascund banner după load
+        setShowExcelBanner(false);
+      }
       if (!silent) alert("Excel loaded successfully!");
     } catch (err) {
       console.error("Error loading Excel data:", err);
@@ -73,6 +105,9 @@ useEffect(() => {
   return (
     <ComplexChecklistModal
       {...props}
+      open={open}
+      onClose={onClose}
+      onConfirm={onConfirm}
       mode={mode}
       categoryName="Tehnic"
       initialTasks={initialTasks}

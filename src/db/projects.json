@@ -1,7 +1,915 @@
 {
   "projects": [
     {
-      "id": 15,
+      "id": 20,
+      "title": "ULTIMUL TEST",
+      "date": "07.20.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Acorduri de subcontractare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Împuterniciri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind conflictul de interese",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": [
+            {
+              "name": "Propunere financiara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Tehnic",
+          "checklist": [
+            {
+              "name": "Opis Propunere Tehnica",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Privind respectarea cerintelor Autoritatii Contractante",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "1.Prezentarea metodologiei și a modului de abordare a lucrărilor:",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "1.1.Planul produs",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "1.2.Abordarea din punct de vedere a procesului tehnologic (metodologia de executie) pentru realizarea lucrărilor cu specificarea resurselor necesare (personal, utilaje si mijloace de transport), pentru fiecare activitate",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "2. Graficul de executie",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Planul de lucru (diagrama Gantt)",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Drumul critic",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Sectiune descriptiva",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "< Diagrama PERT a proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Histograma costurilor (respectiv explicitarea resursei financiare) - Alocarea financiara  procentuala",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "a) Structura WBS (WorkBreakdownStructure) - Structura De Dezvoltare Ierarhica privind activitatile proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "b) Histograma resurse",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Tabel: „resursa aprovizionata\", „distanta de transport\", „numarul de mijloace de transport alocate/zi\", „numarul de curse auto/zi\", „timp alocat/cursa transport incarcat si descarcat\".",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organizarea șantierului cu luarea în considerare a constrângerilor impuse de locul execuției lucrărilor, inclusiv măsuri de semnalizare și iluminare a punctelor de lucru + Contract deseuri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de asigurare a calității",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul cu măsurile privind protecția mediului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind termenul de garanție acordat lucrărilor executate din care să rezulte și perioada de timp de mobilizare pentru remedierea deficiențelor și durata de remediere a deficiențelor. Perioada  de garantie acordata lucrarilor este de 60 de luni.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul privind măsurile de supraveghere a lucrărilor în perioada de garanție acordată, care va avea în vedere precizarea modalităților, termenului de intervenție și a duratelor de remediere a potențialelor defecțiuni datorate viciilor de execuție/producție, a resurselor financiare, materiale, tehnice și de personal alocate pentru punerea în aplicare a planului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Prezentarea surselor de aprovizionare si a distantelor de transport pentru principalele materiale: mixturi asfaltice, betoane, piatra sparta, balast. Se va prezenta lista cu indicarea furnizorilor principalelor materiale (denumire furnizor si indicarea adresei acestuia). +documente de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Se vor prezenta extrasele de resurse C6, C7, C8, C9",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Resursele de personal + modalitatea de asigurare a accesului la specialiști,\r\nrespectiv modalitatea de asigurare a accesului la echipamente/utilaje în vederea verificării capacitatii tehnice a ofertantului si a nivelului de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de intervenţie în situaţii de urgenţă",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organigrama proiectului inclusiv o descriere a rolurilor şi responsabilităţilor personalului şi liniile de comunicare între membrii echipei.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ofertantii vor prezenta listele de cantitati aferente lucrarii (Formularele F3), fara valori",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia pe propria raspundere care sa dovedeasca faptul ca la elaborarea ofertei s-a tinut cont de obligatiile referitoare la conditiile de munca în domeniile mediului, social si al relatiilor de munca -(Formularul nr. 6).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Formularul nr. 9- Declaratie de acceptare a conditiilor contractuale",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia privind informatiile confidentiale (Formularul nr. 7).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Utilaje",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ultima pagina",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ],
+          "excelPath": "C:\\Users\\Andrei Teodor Dobre\\Pictures\\1. OPIS - Chitila 2.xlsx"
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": [
+            {
+              "name": "PTE/PCCVI",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "title": "PIE",
+      "date": "06.03.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Acorduri de subcontractare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Împuterniciri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind conflictul de interese",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": [
+            {
+              "name": "Propunere financiara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Tehnic",
+          "checklist": [
+            {
+              "name": "Opis Propunere Tehnica",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Pagina de capat",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Privind respectarea cerintelor Autoritatii Contractante",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "1.Prezentarea metodologiei și a modului de abordare a lucrărilor:",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "1.1.Planul produs",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "1.2.Abordarea din punct de vedere a procesului tehnologic (metodologia de executie) pentru realizarea lucrărilor cu specificarea resurselor necesare (personal, utilaje si mijloace de transport), pentru fiecare activitate",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "2. Graficul de executie",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Planul de lucru (diagrama Gantt)",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Drumul critic",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Sectiune descriptiva",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "< Diagrama PERT a proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Histograma costurilor (respectiv explicitarea resursei financiare) - Alocarea financiara  procentuala",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "a) Structura WBS (WorkBreakdownStructure) - Structura De Dezvoltare Ierarhica privind activitatile proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "b) Histograma resurse",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Tabel: „resursa aprovizionata\", „distanta de transport\", „numarul de mijloace de transport alocate/zi\", „numarul de curse auto/zi\", „timp alocat/cursa transport incarcat si descarcat\".",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organizarea șantierului cu luarea în considerare a constrângerilor impuse de locul execuției lucrărilor, inclusiv măsuri de semnalizare și iluminare a punctelor de lucru + Contract deseuri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de asigurare a calității",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul cu măsurile privind protecția mediului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind termenul de garanție acordat lucrărilor executate din care să rezulte și perioada de timp de mobilizare pentru remedierea deficiențelor și durata de remediere a deficiențelor. Perioada  de garantie acordata lucrarilor este de 60 de luni.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul privind măsurile de supraveghere a lucrărilor în perioada de garanție acordată, care va avea în vedere precizarea modalităților, termenului de intervenție și a duratelor de remediere a potențialelor defecțiuni datorate viciilor de execuție/producție, a resurselor financiare, materiale, tehnice și de personal alocate pentru punerea în aplicare a planului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Prezentarea surselor de aprovizionare si a distantelor de transport pentru principalele materiale: mixturi asfaltice, betoane, piatra sparta, balast. Se va prezenta lista cu indicarea furnizorilor principalelor materiale (denumire furnizor si indicarea adresei acestuia). +documente de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Se vor prezenta extrasele de resurse C6, C7, C8, C9",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Resursele de personal + modalitatea de asigurare a accesului la specialiști,\r\nrespectiv modalitatea de asigurare a accesului la echipamente/utilaje în vederea verificării capacitatii tehnice a ofertantului si a nivelului de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de intervenţie în situaţii de urgenţă",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organigrama proiectului inclusiv o descriere a rolurilor şi responsabilităţilor personalului şi liniile de comunicare între membrii echipei.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ofertantii vor prezenta listele de cantitati aferente lucrarii (Formularele F3), fara valori",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia pe propria raspundere care sa dovedeasca faptul ca la elaborarea ofertei s-a tinut cont de obligatiile referitoare la conditiile de munca în domeniile mediului, social si al relatiilor de munca -(Formularul nr. 6).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Formularul nr. 9- Declaratie de acceptare a conditiilor contractuale",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia privind informatiile confidentiale (Formularul nr. 7).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Utilaje",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ultima pagina",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ],
+          "excelPath": "C:\\Users\\Andrei Teodor Dobre\\Pictures\\1. OPIS - Chitila 2.xlsx"
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": [
+            {
+              "name": "PTE/PCCVI",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "PIPELINE",
+      "date": "06.02.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Acorduri de subcontractare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Împuterniciri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind conflictul de interese",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": [
+            {
+              "name": "Propunere financiara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Tehnic",
+          "checklist": [
+            {
+              "name": "Opis Propunere Tehnica",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Pagina de capat",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Privind respectarea cerintelor Autoritatii Contractante",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "1.Prezentarea metodologiei și a modului de abordare a lucrărilor:",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "1.1.Planul produs",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "1.2.Abordarea din punct de vedere a procesului tehnologic (metodologia de executie) pentru realizarea lucrărilor cu specificarea resurselor necesare (personal, utilaje si mijloace de transport), pentru fiecare activitate",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "2. Graficul de executie",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Planul de lucru (diagrama Gantt)",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Drumul critic",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Sectiune descriptiva",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "< Diagrama PERT a proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Histograma costurilor (respectiv explicitarea resursei financiare) - Alocarea financiara  procentuala",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "a) Structura WBS (WorkBreakdownStructure) - Structura De Dezvoltare Ierarhica privind activitatile proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "b) Histograma resurse",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Tabel: „resursa aprovizionata\", „distanta de transport\", „numarul de mijloace de transport alocate/zi\", „numarul de curse auto/zi\", „timp alocat/cursa transport incarcat si descarcat\".",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organizarea șantierului cu luarea în considerare a constrângerilor impuse de locul execuției lucrărilor, inclusiv măsuri de semnalizare și iluminare a punctelor de lucru + Contract deseuri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de asigurare a calității",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul cu măsurile privind protecția mediului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind termenul de garanție acordat lucrărilor executate din care să rezulte și perioada de timp de mobilizare pentru remedierea deficiențelor și durata de remediere a deficiențelor. Perioada  de garantie acordata lucrarilor este de 60 de luni.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul privind măsurile de supraveghere a lucrărilor în perioada de garanție acordată, care va avea în vedere precizarea modalităților, termenului de intervenție și a duratelor de remediere a potențialelor defecțiuni datorate viciilor de execuție/producție, a resurselor financiare, materiale, tehnice și de personal alocate pentru punerea în aplicare a planului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Prezentarea surselor de aprovizionare si a distantelor de transport pentru principalele materiale: mixturi asfaltice, betoane, piatra sparta, balast. Se va prezenta lista cu indicarea furnizorilor principalelor materiale (denumire furnizor si indicarea adresei acestuia). +documente de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Se vor prezenta extrasele de resurse C6, C7, C8, C9",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Resursele de personal + modalitatea de asigurare a accesului la specialiști,\r\nrespectiv modalitatea de asigurare a accesului la echipamente/utilaje în vederea verificării capacitatii tehnice a ofertantului si a nivelului de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de intervenţie în situaţii de urgenţă",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organigrama proiectului inclusiv o descriere a rolurilor şi responsabilităţilor personalului şi liniile de comunicare între membrii echipei.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ofertantii vor prezenta listele de cantitati aferente lucrarii (Formularele F3), fara valori",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia pe propria raspundere care sa dovedeasca faptul ca la elaborarea ofertei s-a tinut cont de obligatiile referitoare la conditiile de munca în domeniile mediului, social si al relatiilor de munca -(Formularul nr. 6).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Formularul nr. 9- Declaratie de acceptare a conditiilor contractuale",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia privind informatiile confidentiale (Formularul nr. 7).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Utilaje",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ultima pagina",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ],
+          "excelPath": "C:\\Users\\Andrei Teodor Dobre\\Pictures\\1. OPIS - Chitila 2.xlsx"
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": [
+            {
+              "name": "PTE/PCCVI",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
       "title": "testfinal",
       "date": "05.31.2025",
       "categories": [
@@ -68,21 +976,21 @@
           "name": "Tehnic",
           "checklist": [
             {
-              "name": "Propunere Tehnica",
+              "name": "Opis Propunere Tehnica",
               "status": "incomplete",
               "proposed": false,
               "verified": false,
               "subTasks": []
             },
             {
-              "name": "Pagina de cacat",
+              "name": "Pagina de capat",
               "status": "incomplete",
               "proposed": false,
               "verified": false,
               "subTasks": []
             },
             {
-              "name": "Declaratie privind respectarea cerintelor Autoritatii Contractante",
+              "name": "Privind respectarea cerintelor Autoritatii Contractante",
               "status": "incomplete",
               "proposed": false,
               "verified": false,
@@ -95,7 +1003,7 @@
               "verified": false,
               "subTasks": [
                 {
-                  "name": "1.1.Planul propus",
+                  "name": "1.1.Planul produs",
                   "status": "incomplete",
                   "proposed": false,
                   "verified": false,
@@ -371,7 +1279,230 @@
         },
         {
           "name": "Tehnic",
-          "checklist": []
+          "checklist": [
+            {
+              "name": "Propunere Tehnica",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Pagina de capat",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Privind respectarea cerintelor Autoritatii Contractante",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "1.Prezentarea metodologiei și a modului de abordare a lucrărilor:",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "1.1.Planul produs",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "1.2.Abordarea din punct de vedere a procesului tehnologic (metodologia de executie) pentru realizarea lucrărilor cu specificarea resurselor necesare (personal, utilaje si mijloace de transport), pentru fiecare activitate",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "2. Graficul de executie",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Planul de lucru (diagrama Gantt)",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Drumul critic",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Sectiune descriptiva",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "< Diagrama PERT a proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Histograma costurilor (respectiv explicitarea resursei financiare) - Alocarea financiara  procentuala",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "a) Structura WBS (WorkBreakdownStructure) - Structura De Dezvoltare Ierarhica privind activitatile proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "b) Histograma resurse",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Tabel: „resursa aprovizionata\", „distanta de transport\", „numarul de mijloace de transport alocate/zi\", „numarul de curse auto/zi\", „timp alocat/cursa transport incarcat si descarcat\".",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organizarea șantierului cu luarea în considerare a constrângerilor impuse de locul execuției lucrărilor, inclusiv măsuri de semnalizare și iluminare a punctelor de lucru + Contract deseuri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de asigurare a calității",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul cu măsurile privind protecția mediului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind termenul de garanție acordat lucrărilor executate din care să rezulte și perioada de timp de mobilizare pentru remedierea deficiențelor și durata de remediere a deficiențelor. Perioada  de garantie acordata lucrarilor este de 60 de luni.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul privind măsurile de supraveghere a lucrărilor în perioada de garanție acordată, care va avea în vedere precizarea modalităților, termenului de intervenție și a duratelor de remediere a potențialelor defecțiuni datorate viciilor de execuție/producție, a resurselor financiare, materiale, tehnice și de personal alocate pentru punerea în aplicare a planului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Prezentarea surselor de aprovizionare si a distantelor de transport pentru principalele materiale: mixturi asfaltice, betoane, piatra sparta, balast. Se va prezenta lista cu indicarea furnizorilor principalelor materiale (denumire furnizor si indicarea adresei acestuia). +documente de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Se vor prezenta extrasele de resurse C6, C7, C8, C9",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Resursele de personal + modalitatea de asigurare a accesului la specialiști,\r\nrespectiv modalitatea de asigurare a accesului la echipamente/utilaje în vederea verificării capacitatii tehnice a ofertantului si a nivelului de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de intervenţie în situaţii de urgenţă",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organigrama proiectului inclusiv o descriere a rolurilor şi responsabilităţilor personalului şi liniile de comunicare între membrii echipei.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ofertantii vor prezenta listele de cantitati aferente lucrarii (Formularele F3), fara valori",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia pe propria raspundere care sa dovedeasca faptul ca la elaborarea ofertei s-a tinut cont de obligatiile referitoare la conditiile de munca în domeniile mediului, social si al relatiilor de munca -(Formularul nr. 6).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Formularul nr. 9- Declaratie de acceptare a conditiilor contractuale",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia privind informatiile confidentiale (Formularul nr. 7).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Utilaje",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ultima pagina",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ],
+          "excelPath": "C:\\Users\\Andrei Teodor Dobre\\Pictures\\1. OPIS - Chitila 2.xlsx"
         },
         {
           "name": "PTE/PCCVI",
@@ -453,7 +1584,230 @@
         },
         {
           "name": "Tehnic",
-          "checklist": []
+          "checklist": [
+            {
+              "name": "Opis Propunere Tehnica",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Pagina de capat",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Privind respectarea cerintelor Autoritatii Contractante",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "1.Prezentarea metodologiei și a modului de abordare a lucrărilor:",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "1.1.Planul produs",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "1.2.Abordarea din punct de vedere a procesului tehnologic (metodologia de executie) pentru realizarea lucrărilor cu specificarea resurselor necesare (personal, utilaje si mijloace de transport), pentru fiecare activitate",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "2. Graficul de executie",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Planul de lucru (diagrama Gantt)",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Drumul critic",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "< Sectiune descriptiva",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "< Diagrama PERT a proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Histograma costurilor (respectiv explicitarea resursei financiare) - Alocarea financiara  procentuala",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": [
+                {
+                  "name": "a) Structura WBS (WorkBreakdownStructure) - Structura De Dezvoltare Ierarhica privind activitatile proiectului",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                },
+                {
+                  "name": "b) Histograma resurse",
+                  "status": "incomplete",
+                  "proposed": false,
+                  "verified": false,
+                  "subTasks": []
+                }
+              ]
+            },
+            {
+              "name": "Tabel: „resursa aprovizionata\", „distanta de transport\", „numarul de mijloace de transport alocate/zi\", „numarul de curse auto/zi\", „timp alocat/cursa transport incarcat si descarcat\".",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organizarea șantierului cu luarea în considerare a constrângerilor impuse de locul execuției lucrărilor, inclusiv măsuri de semnalizare și iluminare a punctelor de lucru + Contract deseuri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de asigurare a calității",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul cu măsurile privind protecția mediului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind termenul de garanție acordat lucrărilor executate din care să rezulte și perioada de timp de mobilizare pentru remedierea deficiențelor și durata de remediere a deficiențelor. Perioada  de garantie acordata lucrarilor este de 60 de luni.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul privind măsurile de supraveghere a lucrărilor în perioada de garanție acordată, care va avea în vedere precizarea modalităților, termenului de intervenție și a duratelor de remediere a potențialelor defecțiuni datorate viciilor de execuție/producție, a resurselor financiare, materiale, tehnice și de personal alocate pentru punerea în aplicare a planului",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Prezentarea surselor de aprovizionare si a distantelor de transport pentru principalele materiale: mixturi asfaltice, betoane, piatra sparta, balast. Se va prezenta lista cu indicarea furnizorilor principalelor materiale (denumire furnizor si indicarea adresei acestuia). +documente de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Se vor prezenta extrasele de resurse C6, C7, C8, C9",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Resursele de personal + modalitatea de asigurare a accesului la specialiști,\r\nrespectiv modalitatea de asigurare a accesului la echipamente/utilaje în vederea verificării capacitatii tehnice a ofertantului si a nivelului de calitate",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Planul de intervenţie în situaţii de urgenţă",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Organigrama proiectului inclusiv o descriere a rolurilor şi responsabilităţilor personalului şi liniile de comunicare între membrii echipei.",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ofertantii vor prezenta listele de cantitati aferente lucrarii (Formularele F3), fara valori",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia pe propria raspundere care sa dovedeasca faptul ca la elaborarea ofertei s-a tinut cont de obligatiile referitoare la conditiile de munca în domeniile mediului, social si al relatiilor de munca -(Formularul nr. 6).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Formularul nr. 9- Declaratie de acceptare a conditiilor contractuale",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declaratia privind informatiile confidentiale (Formularul nr. 7).",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Utilaje",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Ultima pagina",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ],
+          "excelPath": "C:\\Users\\Andrei Teodor Dobre\\Pictures\\1. OPIS - Chitila 2.xlsx"
         },
         {
           "name": "PTE/PCCVI",
@@ -1892,6 +3246,88 @@
       "id": 6,
       "title": "Bolintin Vale",
       "date": "01.20.2025",
+      "categories": [
+        {
+          "name": "Eligibilitate",
+          "checklist": [
+            {
+              "name": "Garantia de participare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Acorduri de subcontractare",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Împuterniciri",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Declarație privind conflictul de interese",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Centralizator experienta similara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            },
+            {
+              "name": "Personal",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Financiar",
+          "checklist": [
+            {
+              "name": "Propunere financiara",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        },
+        {
+          "name": "Tehnic",
+          "checklist": []
+        },
+        {
+          "name": "PTE/PCCVI",
+          "checklist": [
+            {
+              "name": "PTE/PCCVI",
+              "status": "incomplete",
+              "proposed": false,
+              "verified": false,
+              "subTasks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "06.01.2025",
+      "date": "test_update",
       "categories": [
         {
           "name": "Eligibilitate",
