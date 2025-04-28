@@ -10,7 +10,48 @@
   use tauri::Manager;
   use tauri::api::dialog::blocking::FileDialogBuilder;
   use std::sync::{Arc, Mutex};
-  use notify::{Watcher, RecursiveMode, Config, event::EventKind};
+  use notify::{Watcher, RecursiveMode, Config};
+
+  // ─────────── utilitare config & disc ───────────
+    fn exe_dir() -> PathBuf {
+        std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf()
+    }
+    fn cfg_path() -> PathBuf { exe_dir().join("config.json") }
+
+    /// dacă nu există – creează schelet minim
+    fn load_cfg() -> Value {
+        let p = cfg_path();
+        if !p.exists() {
+            let skeleton = json!({
+                "current_year": "2025",
+                "years": { "2025": {} }
+            });
+            let _ = fs::write(&p, serde_json::to_string_pretty(&skeleton).unwrap());
+            return skeleton;
+        }
+        serde_json::from_str(&fs::read_to_string(&p).unwrap()).unwrap()
+    }
+    fn save_cfg(v: &Value) { let _ = fs::write(cfg_path(), serde_json::to_string_pretty(v).unwrap()); }
+
+    /// ne întoarcem la intrarea anului curent (mut)
+    fn current_year_entry<'a>(cfg: &'a mut Value) -> &'a mut Value {
+        let cur_year = cfg["current_year"].as_str().unwrap().to_string();
+        cfg["years"].get_mut(&cur_year).unwrap()
+    }
+
+    /// dialog helper
+    fn pick_path(title: &str, folder: bool) -> Option<PathBuf> {
+        // `set_title()` consumă builder-ul – îl folosim direct în lanț
+        if folder {
+            FileDialogBuilder::new().set_title(title).pick_folder()
+        } else {
+            FileDialogBuilder::new().set_title(title).pick_file()
+        }
+    }
 
   // ─────────────────── Structuri de date ─────────────────── //
 
@@ -65,38 +106,36 @@
   // ───────────── Helper: calea către fişierul DB ───────────── //
 
   fn get_db_path() -> PathBuf {
-      let exe_dir = std::env::current_exe()
-          .ok()
-          .and_then(|p| p.parent().map(|pp| pp.to_path_buf()))
-          .unwrap_or_else(|| PathBuf::from("."));
+    let mut cfg = load_cfg();
 
-      let config_path = exe_dir.join("config.json");
+    // bloc separat pentru împrumut mutabil
+    let db_string = {
+        let entry = current_year_entry(&mut cfg);
+        let db_val = entry
+            .as_object_mut()
+            .unwrap()
+            .entry("db_path")
+            .or_insert(json!(""));
 
-      if config_path.exists() {
-          if let Ok(config_str) = fs::read_to_string(&config_path) {
-              if let Ok(mut cfg) = serde_json::from_str::<Value>(&config_str) {
-                  if let Some(db_path) = cfg.get_mut("db_path") {
-                      let path_str = db_path.as_str().unwrap_or("").trim();
-                      if path_str.is_empty() {
-                          if let Some(chosen) = FileDialogBuilder::new()
-                              .set_title("Alege fișierul projects.json")
-                              .pick_file()
-                          {
-                              *db_path = Value::String(chosen.to_string_lossy().into_owned());
-                              let _ = fs::write(&config_path, serde_json::to_string_pretty(&cfg).unwrap());
-                              return chosen;
-                          } else {
-                              return PathBuf::from("../src/db/projects.json");
-                          }
-                      } else {
-                          return PathBuf::from(path_str);
-                      }
-                  }
-              }
-          }
-      }
-      PathBuf::from("../src/db/projects.json")
-  }
+        if db_val.as_str().unwrap().is_empty() {
+            if let Some(chosen) = pick_path("Alege projects.json", false) {
+                if !chosen.exists() {
+                    let _ = fs::write(&chosen, r#"{ "projects": [] }"#);
+                }
+                let chosen_str = chosen.to_string_lossy().into_owned();
+                *db_val = Value::String(chosen_str.clone());
+                chosen_str
+            } else {
+                return PathBuf::from("../src/db/projects.json");
+            }
+        } else {
+            db_val.as_str().unwrap().to_string()
+        }
+    };
+
+    save_cfg(&cfg);
+    PathBuf::from(db_string)
+}
 
   // ───────────────────── Comenzi Tauri ───────────────────── //
 
@@ -109,41 +148,33 @@
   }
 
   fn get_projects_dir() -> PathBuf {
-    let exe_dir  = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf();
-    let cfg_path = exe_dir.join("config.json");
+    let mut cfg = load_cfg();
 
-    if cfg_path.exists() {
-        if let Ok(cfg_txt) = std::fs::read_to_string(&cfg_path) {
-            if let Ok(mut v) = serde_json::from_str::<Value>(&cfg_txt) {
-                if let Some(p_dir) = v.get_mut("projects_dir") {
-                    let path_str = p_dir.as_str().unwrap_or("").trim();
+    let dir_string = {
+        let entry = current_year_entry(&mut cfg);
+        let dir_val = entry
+            .as_object_mut()
+            .unwrap()
+            .entry("projects_dir")
+            .or_insert(json!(""));
 
-                    // ───── 1) dacă DEJA avem o cale validă ─────
-                    if !path_str.is_empty() {
-                        return PathBuf::from(path_str);
-                    }
-
-                    // ───── 2) string gol  →  cerem utilizatorului ─────
-                    if let Some(chosen) = FileDialogBuilder::new()
-                        .set_title("Alege folderul în care se află proiectele (Publice)")
-                        .pick_folder()
-                    {
-                        *p_dir = Value::String(chosen.to_string_lossy().into_owned());
-                        // salvăm imediat noua cale în config
-                        let _ = std::fs::write(&cfg_path, serde_json::to_string_pretty(&v).unwrap());
-                        return chosen;
-                    }
-                }
+        if dir_val.as_str().unwrap().is_empty() {
+            if let Some(chosen) = pick_path("Alege folderul Publice", true) {
+                let chosen_str = chosen.to_string_lossy().into_owned();
+                *dir_val = Value::String(chosen_str.clone());
+                chosen_str
+            } else {
+                return PathBuf::from(
+                    "C:\\Users\\Andrei Teodor Dobre\\Desktop\\Facultate\\viarom\\Ofertare - 2025\\Publice",
+                );
             }
+        } else {
+            dir_val.as_str().unwrap().to_string()
         }
-    }
+    };
 
-    // ───── 3) fallback hard-coded dacă utilizatorul apasă Cancel ─────
-    PathBuf::from("C:\\Users\\Andrei Teodor Dobre\\Desktop\\Facultate\\viarom\\Ofertare - 2025\\Publice")
+    save_cfg(&cfg);
+    PathBuf::from(dir_string)
 }
 
 
@@ -218,29 +249,32 @@
   }
 
   fn get_users_path() -> PathBuf {
-    let exe_dir    = std::env::current_exe().unwrap().parent().unwrap().to_path_buf();
-    let config_path = exe_dir.join("config.json");
-    if config_path.exists() {
-      if let Ok(mut cfg) = serde_json::from_str::<Value>(&fs::read_to_string(&config_path).unwrap()) {
-        if let Some(up) = cfg.get_mut("users_path") {
-          if up.as_str().unwrap().trim().is_empty() {
-            if let Some(chosen) = FileDialogBuilder::new()
-              .set_title("Alege fișierul users.json")
-              .pick_file()
-            {
-              *up = Value::String(chosen.to_string_lossy().into_owned());
-              let _ = fs::write(&config_path, serde_json::to_string_pretty(&cfg).unwrap());
-              return chosen;
+    let mut cfg = load_cfg();
+
+    let users_string = {
+        let entry = current_year_entry(&mut cfg);
+        let up_val = entry
+            .as_object_mut()
+            .unwrap()
+            .entry("users_path")
+            .or_insert(json!(""));
+
+        if up_val.as_str().unwrap().is_empty() {
+            if let Some(chosen) = pick_path("Alege users.json", false) {
+                let chosen_str = chosen.to_string_lossy().into_owned();
+                *up_val = Value::String(chosen_str.clone());
+                chosen_str
+            } else {
+                return exe_dir().join("users.json");
             }
-          } else {
-            return PathBuf::from(up.as_str().unwrap());
-          }
+        } else {
+            up_val.as_str().unwrap().to_string()
         }
-      }
-    }
-    // fallback
-    exe_dir.join("users.json")
-  }
+    };
+
+    save_cfg(&cfg);
+    PathBuf::from(users_string)
+}
 
   #[tauri::command]
     fn load_users() -> Result<Value, String> {
@@ -322,6 +356,85 @@
       save_projects(root.to_string())
   }
 
+  #[tauri::command]
+fn list_years() -> Result<Vec<String>, String> {
+    let cfg = load_cfg();
+    Ok(cfg["years"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect())
+}
+
+#[tauri::command]
+fn switch_year(app: tauri::AppHandle, year: String) -> Result<(), String> {
+    let mut cfg = load_cfg();
+    cfg["current_year"] = Value::String(year.clone());
+    save_cfg(&cfg);
+    app.emit_all("year_switched", &year).ok();
+    {
+        // repornim watcher-ul pe noul folder
+        let shared = app.state::<SharedWatcher>();
+        // opreşte vechiul watcher (scapă-l din memorie)
+        *shared.lock().unwrap() = None;
+        if let Ok(w) = spawn_dir_watcher(app.clone()) {
+            *shared.lock().unwrap() = Some(w);
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn add_year() -> Result<String, String> {
+    use std::fs;
+
+    // ─── calculăm anul nou ─────────────────────────────────────────
+    let mut cfg = load_cfg();
+    let max_year = cfg["years"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .filter_map(|y| y.parse::<u32>().ok())
+        .max()
+        .unwrap_or(2025);
+
+    let new_year = (max_year + 1).to_string();
+
+    // ─── ① ALEGEM DOAR FOLDER-UL BAZĂ ─────────────────────────────
+    let base_dir = pick_path("Alege folderul pentru anul nou", /*folder*/ true)
+        .ok_or("Anulat la alegere folder")?;
+
+    // în folder-ul ales creăm **doar** baza de date
+    let db_path = base_dir.join(format!("projects_{}.json", new_year));
+    if !db_path.exists() {
+        fs::write(&db_path, r#"{ "projects": [] }"#).map_err(|e| e.to_string())?;
+    }
+
+    // ─── ② ALEGEM users.json DEJA EXISTENT ────────────────────────
+    let users_path = pick_path("Alege users.json existent", /*folder*/ false)
+        .ok_or("Anulat la alegere users.json")?;
+
+    if !users_path.exists() {
+        return Err("Fişierul users.json nu există.".into());
+    }
+
+    // ─── ③ ALEGEM FOLDERUL “Publice” CA ŞI PÂNĂ ACUM ──────────────
+    let projects_dir = pick_path("Alege folderul Publice", true)
+        .ok_or("Anulat la alegere Publice")?;
+
+    // ─── actualizăm config-ul ─────────────────────────────────────
+    cfg["years"][&new_year] = json!({
+        "db_path":     db_path.to_string_lossy(),
+        "users_path":  users_path.to_string_lossy(),
+        "projects_dir":projects_dir.to_string_lossy()
+    });
+    cfg["current_year"] = Value::String(new_year.clone());
+    save_cfg(&cfg);
+
+    Ok(new_year)
+}
+
   use bcrypt::{verify, hash, DEFAULT_COST};
 #[derive(Serialize, Deserialize)] struct Role { editor: bool, verificator: bool }
 #[derive(Serialize, Deserialize)] struct User {
@@ -331,7 +444,7 @@
 
 #[tauri::command]
 fn auth_login(mail: String, password: String) -> Result<User, String> {
-    let users_path = get_db_path().with_file_name("users.json");
+    let users_path = get_users_path();
     let txt = std::fs::read_to_string(users_path).map_err(|e| e.to_string())?;
     let v: Value = serde_json::from_str(&txt).map_err(|e| e.to_string())?;
     let arr = v["users"].as_array().ok_or("users invalid")?;
@@ -367,7 +480,7 @@ fn auth_register(mail: String,
         return Err("Parola trebuie să aibă cel puțin 6 caractere".into());
     }
 
-    let users_path = get_db_path().with_file_name("users.json");
+    let users_path = get_users_path();
     let mut root: Value = if users_path.exists() {
         serde_json::from_str(&std::fs::read_to_string(&users_path).map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())?
@@ -438,29 +551,12 @@ fn save_excel_path(project_id: i64, path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn load_config() -> Result<(String, String), String> {
-    // aflăm unde e configurarea
-    let exe_dir = std::env::current_exe()
-        .map_err(|e| e.to_string())?
-        .parent()
-        .unwrap()
-        .to_path_buf();
-    let config_path = exe_dir.join("config.json");
-
-    // citim fișierul
-    let cfg_text = std::fs::read_to_string(&config_path).map_err(|e| e.to_string())?;
-    let v: serde_json::Value = serde_json::from_str(&cfg_text).map_err(|e| e.to_string())?;
-
-    // extragem cele două căi
-    let db_path    = v.get("db_path"   )
-                      .and_then(|p| p.as_str())
-                      .unwrap_or("")
-                      .to_string();
-    let users_path = v.get("users_path")
-                      .and_then(|p| p.as_str())
-                      .unwrap_or("")
-                      .to_string();
-
-    Ok((db_path, users_path))
+    let mut cfg = load_cfg();
+    let entry   = current_year_entry(&mut cfg);
+    Ok((
+        entry["db_path"].as_str().unwrap_or("").to_string(),
+        entry["users_path"].as_str().unwrap_or("").to_string(),
+    ))
 }
 
 lazy_static! {
@@ -575,7 +671,8 @@ fn spawn_dir_watcher(app_handle: tauri::AppHandle)
             load_projects, save_projects, add_project,      // … restul
             load_technical_data, edit_project, delete_project,
             auth_login, auth_register, load_users, load_config,
-            save_excel_path
+            save_excel_path,
+            list_years, switch_year, add_year
         ])
         .manage::<SharedWatcher>(Arc::new(Mutex::new(None)))
         .setup(|app| {

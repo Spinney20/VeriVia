@@ -12,6 +12,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";          // NEW
+import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined"; // NEW
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // NEW
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -20,6 +23,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import Radio from "@mui/material/Radio";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import LogoutIcon from "@mui/icons-material/Logout";
+import Tooltip from "@mui/material/Tooltip";
 
 // Importă componentele pentru modale
 import EligibilityModal from "../components/EligibilityModal";
@@ -34,6 +38,9 @@ import { listen } from "@tauri-apps/api/event";
 export default function ProjectsView() {
   const [expandedProjects, setExpandedProjects] = useState([]);
   const [dbData, setDbData] = useState({ projects: [] });
+  const [years,       setYears]      = useState([]);  // ex: ["2025","2026",…]
+  const [currentYear, setCurrentYear]= useState("");  // anul care e activ
+  const [startIdx,    setStartIdx]   = useState(0);   // index pt. slider (max 3 vizibile)
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -69,6 +76,39 @@ export default function ProjectsView() {
   const [editProjectDate, setEditProjectDate] = useState("");
 
   /* ───────────── load DB ───────────── */
+  // ───────── ani disponibili ─────────
+const loadYears = async () => {
+  try {
+    const y = await invoke("list_years");     // ["2025","2026",…]
+    const sorted = [...y].sort();
+    setYears(sorted);
+    if (!currentYear && sorted.length) setCurrentYear(sorted[sorted.length - 1]);
+  } catch (e) {
+    console.error("list_years:", e);
+  }
+};
+
+const handleSwitchYear = async (yr) => {
+  try {
+    await invoke("switch_year", { year: yr });
+    setCurrentYear(yr);
+    fetchDbData();           // re-încarcă proiectele
+  } catch (e) {
+    console.error("switch_year:", e);
+  }
+};
+
+const handleAddYear = async () => {
+  try {
+    const newY = await invoke("add_year");    // backend face și switch
+    await loadYears();
+    setCurrentYear(newY);
+    fetchDbData();
+  } catch (e) {
+    // dacă utilizatorul apasă Cancel ignorăm eroarea
+    if (!String(e).startsWith("Anulat")) console.error("add_year:", e);
+  }
+};
   async function fetchDbData() {
     try {
       const data = await invoke("load_projects");
@@ -78,15 +118,26 @@ export default function ProjectsView() {
     }
   }
   useEffect(() => {
-    fetchDbData(); // îl lăsăm să facă fetch inițial
+    // 1) ani disponibili şi anul curent
+    loadYears();
+    // 2) prima încărcare de proiecte
+    fetchDbData();
 
-    const unlistenPromise = listen("project_added", () => {
-      fetchDbData(); // și când vine eventul
+    // 3) ascultăm evenimente din backend
+    const unlistenAdded = listen("project_added", () => {
+      fetchDbData();
     });
 
+    const unlistenYear = listen("year_switched", (e) => {
+      // backend întoarce anul nou în payload
+      setCurrentYear(e.payload);
+      fetchDbData();
+    });
+
+    // 4) cleanup
     return () => {
-      // cleanup corect la închiderea componentei
-      unlistenPromise.then((unlisten) => unlisten());
+      unlistenAdded.then((u) => u());
+      unlistenYear.then((u) => u());
     };
   }, []);
 
@@ -238,7 +289,82 @@ export default function ProjectsView() {
 
   /* ───────────── render ───────────── */
   return (
-    <Stack spacing={2} sx={{ backgroundColor: "transparent" }}>
+    <Stack spacing={2} sx={{ backgroundColor: "transparent", position:"relative",  }}>
+<Box
+  sx={{
+    position: "fixed",
+    top: 8,
+    left: 8,
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+  }}
+>
+  {/* ← doar dacă sunt mai mult de 3 ani, afișăm săgeata stânga */}
+  {years.length > 3 && (
+    <IconButton
+      size="small"
+      disabled={startIdx === 0}
+      onClick={() => setStartIdx(i => Math.max(0, i - 1))}
+    >
+      <ChevronLeftIcon sx={{ color: "#fff" }} />
+    </IconButton>
+  )}
+
+  {/* anii afișați */}
+  {years.slice(startIdx, startIdx + 3).map((yr) => (
+    <Box
+      key={yr}
+      onClick={() => handleSwitchYear(yr)}
+      sx={{
+        px: 1.5,
+        py: 0.5,
+        borderRadius: 1,
+        cursor: "pointer",
+        transition: "all 0.3s ease",
+        fontWeight: yr === currentYear ? 700 : 400,
+        transform: yr === currentYear ? "scale(1.2)" : "scale(1)",
+        color: "#fff",
+        backgroundColor: yr === currentYear ? "primary.main" : "transparent",
+        "&:hover": {
+          transform: "scale(1.5)",
+          backgroundColor: yr === currentYear ? "primary.main" : "transparent",
+        },
+      }}
+    >
+      {yr}
+    </Box>
+  ))}
+
+  {/* → doar dacă sunt mai mult de 3 ani, afișăm săgeata dreapta */}
+  {years.length > 3 && (
+    <IconButton
+      size="small"
+      disabled={startIdx + 3 >= years.length}
+      onClick={() => setStartIdx(i => Math.min(years.length - 3, i + 1))}
+    >
+      <ChevronRightOutlinedIcon sx={{ color: "#fff" }} />
+    </IconButton>
+  )}
+
+  {/* butonul de + (pentru adăugare an nou) */}
+  <Tooltip title="ADAUGĂ URMĂTORUL AN" arrow enterDelay={200}>
+  <IconButton
+    size="small"
+    onClick={handleAddYear}
+    sx={{
+      color: "#0f0",
+      transition: "transform 0.15s ease-in-out",
+      "&:hover": {
+        transform: "scale(1.5)",
+        backgroundColor: "rgba(0,0,0,0.1)",
+      },
+    }}
+  >
+    <AddCircleOutlineIcon fontSize="inherit" />
+  </IconButton>
+</Tooltip>
+</Box>
       <Button variant="contained" onClick={handleOpenAddModal}>
         ADAUGĂ PROIECT
       </Button>
