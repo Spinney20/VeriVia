@@ -521,6 +521,7 @@ export default function ComplexChecklistModal({
           </Typography>
         </Box>
 
+
         {children && <Box sx={{ mt: 2 }}>{children}</Box>}
 
         {/* Add main task (editor) */}
@@ -631,10 +632,7 @@ export default function ComplexChecklistModal({
                             lock={isEditor}
                             checked={getFlagState(item, "verified").checked}
                             indeterminate={getFlagState(item, "verified").indeterminate}
-                            disabled={
-                              isEditor ||
-                              item.subTasks.some((st) => !st.proposed)
-                            }
+                            disabled={isEditor || !item.proposed}
                             onChange={(e) =>
                               toggleFlag(i, null, "verified", e.target.checked)
                             }
