@@ -346,6 +346,13 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
         <Stack
           spacing={2}
           sx={{
+            width:        450,   // lăţime constantă
+            minWidth:     450,   // nu scădea sub ea
+            flexShrink:   0,               // nu te micşora niciodată
+            flexGrow:     0,               // nu ocupa spaţiu în plus
+            alignSelf:    "flex-end",      // lipeşte-l de dreapta (opţional)
+            flex: 1,
+            minWidth: 0,
             backgroundColor: "transparent",
             display: "flex",
             flexDirection: "column",
@@ -484,19 +491,22 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
 
    {/* rând 3 */}
    <TextField
-     fullWidth
-     size="small"
-     label="Caută proiecte…"
-     value={searchQuery}
-     onChange={(e) => setSearchQuery(e.target.value)}
-     sx={{
-       backgroundColor: "rgba(255,255,255,0.1)",
-       borderRadius: 1,
-       input: { color: "#fff" },
-       "& .MuiInputLabel-root": { color: "#fff" },
-       "& .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
-     }}
-   />
+  fullWidth
+  size="small"
+  label="Caută proiecte…"
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+  sx={{
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 1,
+    input: { color: "#fff" },
+    "& .MuiInputLabel-root": { color: "#fff" },
+    "& .MuiInputLabel-root.Mui-focused": { color: "#fff" }, // label alb cand e focus
+    "& .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
+    "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
+    "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" }, // border alb cand e focus
+  }}
+/>
  </Box>
 
       {/* LISTA PROIECTE */}
@@ -507,7 +517,7 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
     overflowY: "auto",     // scroll doar aici
     pr: 1,
     backgroundColor: "transparent",
-    position: "sticky"
+    overflowX: 'hidden',
   }}
 >
   {dbData.projects
@@ -528,26 +538,37 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
             color: "#fff",
           }}
         >
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            {/* stânga: săgeată + text */}
             <Box
-              sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
               onClick={() => toggleExpandProject(proj.id)}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                cursor: "pointer",
+                flex: 1,          // ocupă tot spaţiul
+                minWidth: 0,      // ★ permite shrink-ul
+              }}
             >
-              <IconButton size="small" sx={{ color: "#fff" }}>
+              <IconButton size="small" sx={{ color: "#fff", flexShrink: 0 }}>
                 {expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
               </IconButton>
-              <span style={{ marginLeft: 8 }}>
-                {proj.date} - {proj.title}
-              </span>
+
+              <Box
+                sx={{
+                  ml: 1,
+                  pr: 1,
+                  whiteSpace: "normal",      // permite wrap
+                  overflowWrap: "anywhere",  // rupe şi şiruri lungi
+                  wordBreak: "break-word",   // fallback pt. browsere vechi
+                }}
+              >
+                {proj.date} – {proj.title}
+              </Box>
             </Box>
 
-            <Box sx={{ display: "flex", gap: 1 }}>
+            {/* dreapta: butoane */}
+            <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
               <IconButton
                 size="small"
                 sx={{ color: "#fff" }}
