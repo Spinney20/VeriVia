@@ -1,5 +1,5 @@
 // src/pages/ProjectsView.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 
 // MUI
@@ -40,7 +40,8 @@ export default function ProjectsView() {
   const [dbData, setDbData] = useState({ projects: [] });
   const [years,       setYears]      = useState([]);  // ex: ["2025","2026",…]
   const [currentYear, setCurrentYear]= useState("");  // anul care e activ
-  const [startIdx,    setStartIdx]   = useState(0);   // index pt. slider (max 3 vizibile)
+  const [startIdx,    setStartIdx]   = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -74,6 +75,8 @@ export default function ProjectsView() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editProjectTitle, setEditProjectTitle] = useState("");
   const [editProjectDate, setEditProjectDate] = useState("");
+  const listRef      = useRef(null);
+  const [showBackBtn, setShowBackBtn] = useState(false);
 
   /* ───────────── load DB ───────────── */
   // ───────── ani disponibili ─────────
@@ -144,6 +147,14 @@ const handleAddYear = async () => {
       unlistenYear.then((u) => u());
     };
   }, []);
+
+  useEffect(() => {
+      const el = listRef.current;
+      if (!el) return;
+      const onScroll = () => setShowBackBtn(el.scrollTop > 80); // prag 80 px
+      el.addEventListener("scroll", onScroll);
+      return () => el.removeEventListener("scroll", onScroll);
+    }, []);
 
   /* ───────────── helper × expand/collapse ───────────── */
   const toggleExpandProject = (projectId) => {
@@ -332,7 +343,16 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
 
   /* ───────────── render ───────────── */
   return (
-    <Stack spacing={2} sx={{ backgroundColor: "transparent", position:"relative",  }}>
+        <Stack
+          spacing={2}
+          sx={{
+            backgroundColor: "transparent",
+            display: "flex",
+            flexDirection: "column",
+            height: '100vh',
+            overflow: 'hidden',
+          }}
+        >
 <Box
   sx={{
     position: "fixed",
@@ -408,95 +428,171 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
   </IconButton>
 </Tooltip>
 </Box>
-      <Button variant="contained" onClick={handleOpenAddModal}>
-        ADAUGĂ PROIECT
-      </Button>
+ {/* === HEADER FIX (buton + search) === */}
+ {/* HEADER – 3 rânduri suprapuse */}
+ <Box
+   sx={{
+     position: "sticky",
+     top: 4,           // ✱ mai mic decât era
+     zIndex: 0,
+     pr: 2,
+     pt: 1,
+     pb: 1,
+     backgroundColor: "transparent",
+     display: "flex",
+     flexDirection: "column",
+     gap: 1,
+   }}
+ >
+   {/* rând 1 */}
+   <Button fullWidth variant="contained" onClick={handleOpenAddModal}>
+     ADAUGĂ PROIECT MANUAL
+   </Button>
 
-      <Button variant="contained" onClick={handleExpandClick}>
+   <Box sx={{ display: "flex", gap: 1 }}>
+      {/* always take 100% if alone, or split 50/50 when back‐to‐top is visible */}
+      <Button
+        size="small"
+        variant="contained"
+        onClick={handleExpandClick}
+        sx={{
+          flex: showBackBtn ? "1 1 50%" : "1 1 100%",
+          height: 30,
+          transition: "flex .3s ease",
+        }}
+      >
         {expandedProjects.length === 0 ? "EXPAND ALL" : "COLLAPSE ALL"}
       </Button>
 
+      {/* render this only when you actually need it */}
+      {showBackBtn && (
+        <Button
+          size="small"
+          variant="contained"
+          onClick={() =>
+            listRef.current?.scrollTo({ top: 0, behavior: "smooth" })
+          }
+          sx={{
+            flex: "1 1 50%",
+            height: 30,
+          }}
+        >
+          ÎNAPOI SUS
+        </Button>
+      )}
+    </Box>
+
+   {/* rând 3 */}
+   <TextField
+     fullWidth
+     size="small"
+     label="Caută proiecte…"
+     value={searchQuery}
+     onChange={(e) => setSearchQuery(e.target.value)}
+     sx={{
+       backgroundColor: "rgba(255,255,255,0.1)",
+       borderRadius: 1,
+       input: { color: "#fff" },
+       "& .MuiInputLabel-root": { color: "#fff" },
+       "& .MuiOutlinedInput-notchedOutline": { borderColor: "#fff" },
+     }}
+   />
+ </Box>
+
       {/* LISTA PROIECTE */}
-      <Box sx={{ minWidth: 250, backgroundColor: "transparent" }}>
-        {dbData.projects.map((proj) => {
-          const expanded = isProjectExpanded(proj.id);
-          return (
+      <Box
+      ref={listRef}
+  sx={{
+    flex: 1,               // umple vertical spațiul rămas
+    overflowY: "auto",     // scroll doar aici
+    pr: 1,
+    backgroundColor: "transparent",
+    position: "sticky"
+  }}
+>
+  {dbData.projects
+    .filter((proj) =>
+      proj.title.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .map((proj) => {
+      const expanded = isProjectExpanded(proj.id);
+      return (
+        <Box
+          key={proj.id}
+          sx={{
+            mb: 2,
+            p: 1,
+            border: "1px solid #888",
+            borderRadius: 1,
+            backgroundColor: "transparent",
+            color: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <Box
-              key={proj.id}
-              sx={{
-                mb: 2,
-                p: 1,
-                border: "1px solid #888",
-                borderRadius: 1,
-                backgroundColor: "transparent",
-                color: "#fff",
-              }}
+              sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+              onClick={() => toggleExpandProject(proj.id)}
             >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+              <IconButton size="small" sx={{ color: "#fff" }}>
+                {expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
+              </IconButton>
+              <span style={{ marginLeft: 8 }}>
+                {proj.date} - {proj.title}
+              </span>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <IconButton
+                size="small"
+                sx={{ color: "#fff" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditProject(proj);
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", cursor: "pointer" }} onClick={() => toggleExpandProject(proj.id)}>
-                  <IconButton
-                    size="small"
-                    sx={{ color: "#fff" }}
-                  >
-                    {expanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
-                  </IconButton>
-                  <span style={{ marginLeft: 8 }}>
-                    {proj.date} - {proj.title}
-                  </span>
-                </Box>
-
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <IconButton
-                    size="small"
-                    sx={{ color: "#fff" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditProject(proj);
-                    }}
-                  >
-                    <EditIcon fontSize="inherit" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteProject(proj.id);
-                    }}
-                  >
-                    <DeleteIcon fontSize="inherit" sx={{ color: "red" }} />
-                  </IconButton>
-                </Box>
-              </Box>
-
-              {expanded && (
-                <Box sx={{ ml: 4, mt: 1 }}>
-                  {proj.categories.map((cat, catIndex) => (
-                    <Box
-                      key={catIndex}
-                      sx={{
-                        mt: 1,
-                        cursor: "pointer",
-                        p: 1,
-                        borderRadius: 1,
-                        "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" },
-                      }}
-                      onClick={() => handleCategoryClick(proj, catIndex)}
-                    >
-                      {cat.name}
-                    </Box>
-                  ))}
-                </Box>
-              )}
+                <EditIcon fontSize="inherit" />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteProject(proj.id);
+                }}
+              >
+                <DeleteIcon fontSize="inherit" sx={{ color: "red" }} />
+              </IconButton>
             </Box>
-          );
-        })}
-      </Box>
+          </Box>
+
+          {expanded && (
+            <Box sx={{ ml: 4, mt: 1 }}>
+              {proj.categories.map((cat, catIndex) => (
+                <Box
+                  key={catIndex}
+                  sx={{
+                    mt: 1,
+                    cursor: "pointer",
+                    p: 1,
+                    borderRadius: 1,
+                    "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" },
+                  }}
+                  onClick={() => handleCategoryClick(proj, catIndex)}
+                >
+                  {cat.name}
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+      );
+    })}
+</Box>
 
           {/* ───────────── DIALOG „ADAUGĂ PROIECT” ───────────── */}
     <Dialog open={showModal} onClose={handleCloseModal}>
