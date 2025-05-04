@@ -16,6 +16,13 @@
     current_year: Mutex<Option<String>>,
   }
 
+  #[derive(Debug, Serialize, Deserialize)]
+  pub struct Note {
+    pub user: String,
+    pub date: String,
+    pub text: String,
+  }
+
   impl Default for AppState {
     fn default() -> Self {
       AppState { current_year: Mutex::new(None) }
@@ -77,6 +84,7 @@
       pub verified: bool,
       // ︙ END ︙
 
+      #[serde(default)] pub notes: Vec<Note>,
       #[serde(default)]
       pub subTasks: Vec<ChecklistItem>,
   }
@@ -107,6 +115,7 @@
           status: "incomplete".into(),
           proposed: false,
           verified: false,
+          notes: Vec::new(),
           subTasks: vec![],
       }
   }

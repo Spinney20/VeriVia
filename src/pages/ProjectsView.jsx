@@ -312,6 +312,12 @@ const handleExcelPathSaved = async (newPath) => {
   await fetchDbData();
 };
 
+function formatMonthDay(fullDate) {
+  // split pe “.” ca în “MM.DD.YYYY”
+  const [MM, DD/*, YYYY*/] = fullDate.split(".");
+  return `${MM}.${DD}`;
+}
+
 const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
     if (!selectedProject) return;
     const updatedProjects = dbData.projects.map((proj) => {
@@ -563,32 +569,52 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
                   wordBreak: "break-word",   // fallback pt. browsere vechi
                 }}
               >
-                {proj.date} – {proj.title}
+                {formatMonthDay(proj.date)} – {proj.title}
               </Box>
             </Box>
 
             {/* dreapta: butoane */}
             <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
-              <IconButton
-                size="small"
-                sx={{ color: "#fff" }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEditProject(proj);
-                }}
-              >
-                <EditIcon fontSize="inherit" />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteProject(proj.id);
-                }}
-              >
-                <DeleteIcon fontSize="inherit" sx={{ color: "red" }} />
-              </IconButton>
-            </Box>
+  <Tooltip title="Editează proiect" arrow enterDelay={200}>
+    <IconButton
+      size="small"
+      onClick={(e) => {
+        e.stopPropagation();
+        handleEditProject(proj);
+      }}
+      sx={{
+        color: "#fff",
+        transition: "transform .15s ease-in-out",
+        "&:hover": {
+          transform: "scale(1.5)",
+          backgroundColor: "rgba(0,0,0,0.04)",
+        },
+      }}
+    >
+      <EditIcon fontSize="inherit" />
+    </IconButton>
+  </Tooltip>
+
+  <Tooltip title="Șterge proiect" arrow enterDelay={200}>
+    <IconButton
+      size="small"
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDeleteProject(proj.id);
+      }}
+      sx={{
+        color: "red",
+        transition: "transform .15s ease-in-out",
+        "&:hover": {
+          transform: "scale(1.5)",
+          backgroundColor: "rgba(0,0,0,0.04)",
+        },
+      }}
+    >
+      <DeleteIcon fontSize="inherit" />
+    </IconButton>
+  </Tooltip>
+</Box>
           </Box>
 
           {expanded && (
@@ -681,6 +707,7 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
           onClose={() => setShowEligibilityModal(false)}
           onConfirm={handleEligibilityConfirm}
           projectTitle={selectedProject.title}
+          userName = {displayName}
           initialTasks={
             selectedProject.categories.find(
               (c) => c.name.toLowerCase() === "eligibilitate"
@@ -697,6 +724,7 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
           onClose={() => setShowFinanciarModal(false)}
           onConfirm={handleFinancialConfirm}
           projectTitle={selectedProject.title}
+          userName = {displayName}
           initialTasks={
             selectedProject.categories.find(
               (c) => c.name.toLowerCase() === "financiar"
@@ -713,6 +741,7 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
           onClose={() => setShowPteModal(false)}
           onConfirm={handlePteConfirm}
           projectTitle={selectedProject.title}
+          userName = {displayName}
           initialTasks={
             selectedProject.categories.find(
               (c) => c.name.toLowerCase() === "pte/pccvi"
@@ -732,6 +761,7 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
      onExcelPathSaved={handleExcelPathSaved}
      projectId={selectedProject.id}
      projectTitle={selectedProject.title}
+     userName={displayName}
      initialTasks={
        selectedProject.categories.find(c => c.name.toLowerCase() === "tehnic")
          ?.checklist ?? []
@@ -800,16 +830,23 @@ const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
         </span>
 
         <Button
-          size="small"
-          color="error"
-          startIcon={<LogoutIcon />}
-          onClick={() => {
-            logout();
-            navigate("/login");
-          }}
-        >
-          Logout
-        </Button>
+  size="small"
+  color="error"
+  startIcon={<LogoutIcon />}
+  onClick={() => {
+    logout();
+    navigate("/login");
+  }}
+  sx={{
+    transition: "transform 0.2s ease-in-out",
+    "&:hover": {
+      transform: "scale(1.3)",
+      backgroundColor: "transparent",
+    },
+  }}
+>
+  Logout
+</Button>
       </Box>
     </Stack>
   );

@@ -104,7 +104,7 @@ export default function ComplexChecklistModal({
   mode = "editor", // "editor" | "verificator"
   /* ───────────────────────────────────────────── */
   projectTitle = "Titlu Proiect",
-  userName     = "NumeUtilizator",
+  userName,
   categoryName = "Eligibilitate",
   initialTasks = [],
   excelPath = null,
@@ -131,6 +131,7 @@ export default function ComplexChecklistModal({
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue]       = useState("");
   const [notesTarget, setNotesTarget]     = useState(null);
+  const [editingNote, setEditingNote] = useState(null); // index sau null
 
   // -----------------------------------------------------
   // Roluri
@@ -190,12 +191,14 @@ export default function ComplexChecklistModal({
           ...t,
           proposed : typeof t.proposed  === "boolean" ? t.proposed  : false,
           verified : typeof t.verified  === "boolean" ? t.verified  : false,
+          notes    : Array.isArray(t.notes) ? t.notes : [],
           subTasks : (t.subTasks ?? []).map(addFlags),
         });
         const fixStatus = (t) => {
           t.status = t.proposed && t.verified ? "complete" : "incomplete";
           t.subTasks.forEach(fixStatus);
         };
+        const hasNotes = (obj) => obj.notes && obj.notes.length > 0;
 
         const ready = raw.map(addFlags);
         ready.forEach(fixStatus);
@@ -280,6 +283,37 @@ export default function ComplexChecklistModal({
 
     addAuditLog(pIdx, sIdx, `${flag} → ${val}`);
   };
+
+  /* ───────── helpers note ───────── */
+const currentObj = (draft = items) => {
+  if (!notesTarget) return null;
+  const { type, itemIndex, subIndex } = notesTarget;
+  return type === "parent"
+    ? draft[itemIndex]
+    : draft[itemIndex].subTasks[subIndex];
+};
+
+const mutateNotes = (fn) => {
+  setItems((prev) => {
+    const n = structuredClone(prev);
+    fn(currentObj(n).notes);
+    return n;
+  });
+};
+
+/* să avem la îndemână un test rapid */
+const hasNotes = (obj) => obj?.notes?.length > 0;
+
+const startEditNote = (idx) => {
+  setEditingNote(idx);
+  setNotesValue(currentObj().notes[idx].text);
+};
+
+const deleteNote = (idx) => {
+  if (!window.confirm("Ștergi nota?")) return;
+  setHasUnsavedChanges(true);
+  mutateNotes((arr) => arr.splice(idx, 1));
+};
 
   // -----------------------------------------------------
   // 5) Toggle status (complete/incomplete)
@@ -382,25 +416,26 @@ export default function ComplexChecklistModal({
     setShowNotesDialog(true);
   };
   const saveNotes = () => {
-    if (!notesTarget) return;
+    if (!notesTarget || !notesValue.trim()) return;
     setHasUnsavedChanges(true);
-    const { type, itemIndex, subIndex } = notesTarget;
-    setItems((prev) => {
-      const n = structuredClone(prev);
-      const push = (obj) => {
-        if (!obj.notes) obj.notes = [];
-        obj.notes.push({
-          date: new Date().toLocaleString(),
+
+    mutateNotes((arr) => {
+      if (editingNote !== null) {
+        // EDIT
+        arr[editingNote].text = notesValue;
+        arr[editingNote].date = new Date().toLocaleString();
+      } else {
+        // ADD
+        arr.push({
           user: userName,
+          date: new Date().toLocaleString(),
           text: notesValue,
         });
-      };
-      type === "parent"
-        ? push(n[itemIndex])
-        : push(n[itemIndex].subTasks[subIndex]);
-      return n;
+      }
     });
-    setShowNotesDialog(false);
+
+    setNotesValue("");
+    setEditingNote(null);
   };
 
   const addAuditLog = (itemIndex, subIndex, action) =>
@@ -474,6 +509,37 @@ export default function ComplexChecklistModal({
   const generatePdf = () =>
     alert("Generez PDF…\n" + JSON.stringify(auditLog, null, 2));
 
+  const renderNotes = () => {
+    const { type, itemIndex, subIndex } = notesTarget;
+    const obj = type === 'parent' ? items[itemIndex]
+                                  : items[itemIndex].subTasks[subIndex];
+
+    if (!obj.notes.length) {
+      return <Typography variant="body2" color="text.secondary">Nu există note.</Typography>;
+    }
+    return obj.notes.map((n, idx) => (
+      <Box key={idx} sx={{ p:1, mb:1, border:'1px solid #ddd', borderRadius:1 }}>
+        <Box sx={{ display:'flex', alignItems:'center', mb:.5 }}>
+          <Typography sx={{ fontWeight:700, flex:1 }}>
+            {n.user} • {n.date}
+          </Typography>
+
+          {n.user === userName && (
+            <>
+              <IconButton size="small" onClick={() => startEditNote(idx)}>
+                <EditIcon fontSize="inherit" />
+              </IconButton>
+              <IconButton size="small" color="error" onClick={() => deleteNote(idx)}>
+                <DeleteIcon fontSize="inherit" />
+              </IconButton>
+            </>
+          )}
+        </Box>
+        <Typography whiteSpace="pre-line">{n.text}</Typography>
+      </Box>
+    ));
+  };
+
   // -----------------------------------------------------
   // 10) UI
   // -----------------------------------------------------
@@ -496,8 +562,8 @@ export default function ComplexChecklistModal({
         sx={{
           width: 1580,
           height: 766,
-          transform: "scale(.8)",
-          backgroundColor: "rgba(255,255,255,.9)",
+          zoom: .8,
+          backgroundColor: "#fff",
           borderRadius: 3,
           p: 3,
           position: "relative",
@@ -664,7 +730,27 @@ export default function ComplexChecklistModal({
                     title="Note"
                     onClick={() => openNotes("parent", i, null)}
                   >
-                    <NoteIcon fontSize="inherit" />
+                    <Badge
+                      overlap="circular"
+                      badgeContent="!"
+                      invisible={!hasNotes(item)}           // idem pentru `sub`
+                      anchorOrigin={{ vertical:'top', horizontal:'right' }}
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          backgroundColor: "transparent",   // fără fundal
+                          color: "#d32f2f",                 // roşu
+                          fontWeight: 1000,
+                          fontSize: 34,
+                          boxShadow: "none",
+                          p: 0,                             // fără padding – doar semnul
+                        },
+                      }}
+                    >
+                      <NoteIcon
+                        fontSize="inherit"
+                        sx={{ color: hasNotes(item) ? 'primary.main' : 'inherit' }}
+                      />
+                    </Badge>
                   </ActionIcon>
                 </Box>
 
@@ -747,11 +833,19 @@ export default function ComplexChecklistModal({
                               </ActionIcon>
                             </>
                             )}
-                            <ActionIcon
-                              title="Note"
-                              onClick={() => openNotes("child", i, j)}
-                            >
-                              <NoteIcon fontSize="inherit" />
+                            <ActionIcon title="Note" onClick={() => openNotes("child", i, j)}>
+                              <Badge
+                                color="error"
+                                overlap="circular"
+                                badgeContent="!"
+                                invisible={!hasNotes(sub)}
+                                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                              >
+                                <NoteIcon
+                                  fontSize="inherit"
+                                  sx={{ color: hasNotes(sub) ? "primary.main" : "inherit" }}
+                                />
+                              </Badge>
                             </ActionIcon>
                           </Box>
                         ))}
@@ -825,28 +919,48 @@ export default function ComplexChecklistModal({
         onClose={() => setShowNotesDialog(false)}
         maxWidth="sm"
         fullWidth
-        disablePortal
-        sx={{ zIndex: 13001 }}
         slotProps={{
-          paper: { sx: { zIndex: 13001 } },
+          paper:    { sx: { zIndex: 13001, height: '70vh', display: 'flex', flexDirection: 'column' } },
           backdrop: { sx: { zIndex: 13000 } },
         }}
       >
-        <DialogTitle>Adaugă note / comentarii</DialogTitle>
-        <DialogContent>
-          <TextField
-            multiline
-            rows={4}
-            fullWidth
-            value={notesValue}
-            onChange={(e) => setNotesValue(e.target.value)}
-            label="Note"
-          />
-        </DialogContent>
+        <DialogTitle>Note / comentarii</DialogTitle>
+
+        <DialogContent
+  sx={{
+    flex: 1,                // ocupă restul hârtiei
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',     // ascunde overflow global
+    pt: 1,
+  }}
+>
+  {/*  LISTA NOTE – doar aici există scroll  */}
+  <Box sx={{ flex: 1, overflowY: 'auto', pr: 1,
+    '&::-webkit-scrollbar':        { width: '8px' },
+    '&::-webkit-scrollbar-track':  { background: '#f2f2f2', borderRadius: 4 },
+    '&::-webkit-scrollbar-thumb':  { background: '#b5b5b5', borderRadius: 4 },
+    '&:hover::-webkit-scrollbar-thumb': { background: '#8f8f8f' },
+  }}>
+    {notesTarget && renderNotes()}       {/* funcţia ta de mai devreme */}
+  </Box>
+
+  {/*  INPUT NOTE – lipit jos, 0 scroll  */}
+  <TextField
+    multiline
+    rows={4}
+    fullWidth
+    value={notesValue}
+    onChange={(e) => setNotesValue(e.target.value)}
+    label="Scrie notă…"
+    sx={{ mt: 2 }}
+  />
+</DialogContent>
+
         <DialogActions>
-          <Button onClick={() => setShowNotesDialog(false)}>Anulează</Button>
+          <Button onClick={() => setShowNotesDialog(false)}>Închide</Button>
           <Button variant="contained" onClick={saveNotes}>
-            Salvează
+            {editingNote !== null ? 'Salvează' : 'Adaugă'}
           </Button>
         </DialogActions>
       </Dialog>
