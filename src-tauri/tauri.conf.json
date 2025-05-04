@@ -12,13 +12,19 @@
   },
   "tauri": {
     "allowlist": {
-      "shell": {
-        "open": ".*",
-        "execute": true,
-        "all": true
-      },
       "dialog": {
-        "open": true
+        "all": false,
+        "open": true,
+        "save": true
+      },
+      "fs": {
+        "all": false,
+        "writeFile": true
+      },
+      "shell": {
+        "all": true,
+        "execute": true,
+        "open": ".*"
       }
     },
     "bundle": {

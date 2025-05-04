@@ -28,7 +28,13 @@ import LockIcon          from "@mui/icons-material/Lock";
 import Tooltip           from "@mui/material/Tooltip";
 
 import { invoke } from "@tauri-apps/api/tauri";
-import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+
+// pentru PDF
+import antet from "../images/viarom_antet.jpg";
+import { save } from "@tauri-apps/api/dialog";
+import { writeBinaryFile } from "@tauri-apps/api/fs";
+import { jsPDF } from "jspdf";
+import DejaVu from "../fonts/DejaVuSans.ttf";
 
 const LockedCheckbox = React.forwardRef(
   ({ lock, sx, ...others }, ref) => (
@@ -150,13 +156,84 @@ export default function ComplexChecklistModal({
     return { checked: all, indeterminate: some && !all };
   };
 
-  const handleOpenFolder = async () => {
-    if (!projectPath) return;
-    try {
-     await invoke("open_folder", { path: projectPath });
-    } catch (e) {
-      console.error("Eroare la deschiderea folderului:", e);
-    }
+  const exportReport = async () => {
+    // 1. Alege unde salvezi
+    const outPath = await save({
+      title: "Salvează raportul PDF",
+      filters: [{ name: "PDF file", extensions: ["pdf"] }],
+      defaultPath: `${projectTitle}_${categoryName}.pdf`,
+    });
+    if (!outPath) return; // user pressed Cancel
+
+    // 2. Construiește doc-ul
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const left = 20;
+    const pageW = 210;
+    const usable = pageW - left * 2;
+
+    // 2.1 Antet cu imagine
+    const logoH = 13;
+    // Încarcă imaginea într-un obiect Image pentru siguranță
+    const img = new Image();
+    img.src = antet;
+    await new Promise((r) => (img.onload = r));
+
+    // Adaugă antetul în colțul stânga-sus
+    doc.addImage(img, "PNG", left, 10, logoH * 4.8 , logoH);
+
+    // Titlurile
+    doc
+      .setFontSize(26)
+      .setFont("helvetica", "bold")
+      .text("Raport Verificare Verivia", pageW / 2, 35, { align: "center" });
+
+    doc
+      .setFontSize(22)
+      .setFont("helvetica", "normal")
+      .text(projectTitle, pageW / 2, 43, { align: "center" })
+      .text(categoryName, pageW / 2, 50, { align: "center" });
+
+    let y = 70;
+
+    doc
+      .setFontSize(14)
+      .setFont("helvetica", "normal")
+
+    // 2.2 Tabel task-uri
+    const indent = 6;
+    const lineH = 7;
+    const addLine = (txt, level, status) => {
+      const x = left + level * indent;
+      // codurile Unicode pentru box & checked box
+      const glyph = status === "complete" ? "\u2611" : "\u2610";
+      doc.text(glyph, x, y);
+      doc.text(txt, x + 6, y);
+      y += lineH;
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+    };
+
+    items.forEach((t) => {
+      addLine(t.name, 0, t.status);
+      t.subTasks?.forEach((s) => addLine(s.name, 1, s.status));
+    });
+
+    // 2.3 Footer cu semnătura
+    doc.setFontSize(11);
+    doc.text(
+      `Verificat de: ${userName || "_________"}`,
+      pageW - left,
+      287,
+      { align: "right" }
+    );
+
+    // 3. Scrie fișierul pe disc
+    const pdfBytes = doc.output("arraybuffer"); // Uint8Array
+    await writeBinaryFile({ path: outPath, contents: pdfBytes });
+
+    alert("Raport salvat cu succes!");
   };
 
   const getFlagState = (item, flag) => {
@@ -505,9 +582,6 @@ const deleteNote = (idx) => {
   const totalCount     = allTasks.length;
   const progressPercent = totalCount ? (completedCount / totalCount) * 100 : 0;
   const allComplete     = completedCount === totalCount && totalCount > 0;
-
-  const generatePdf = () =>
-    alert("Generez PDF…\n" + JSON.stringify(auditLog, null, 2));
 
   const renderNotes = () => {
     const { type, itemIndex, subIndex } = notesTarget;
@@ -880,7 +954,7 @@ const deleteNote = (idx) => {
         {/* FOOTER */}
         <Box sx={{ position: "absolute", bottom: 16, right: 16, display: "flex", gap: 2 }}>
           {allComplete && (
-            <Button variant="contained" color="info" onClick={generatePdf}>
+            <Button variant="contained" color="info" onClick={exportReport}>
               Generează Proces Verbal
             </Button>
           )}

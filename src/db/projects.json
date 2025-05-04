@@ -10,9 +10,9 @@
           "checklist": [
             {
               "name": "Garantia de participare",
-              "status": "incomplete",
-              "proposed": false,
-              "verified": false,
+              "status": "complete",
+              "proposed": true,
+              "verified": true,
               "subTasks": [],
               "notes": [
                 {
@@ -34,9 +34,9 @@
             },
             {
               "name": "Acorduri de subcontractare",
-              "status": "incomplete",
-              "proposed": false,
-              "verified": false,
+              "status": "complete",
+              "proposed": true,
+              "verified": true,
               "subTasks": [],
               "notes": [
                 {
@@ -48,33 +48,33 @@
             },
             {
               "name": "Împuterniciri",
-              "status": "incomplete",
-              "proposed": false,
-              "verified": false,
+              "status": "complete",
+              "proposed": true,
+              "verified": true,
               "subTasks": [],
               "notes": []
             },
             {
               "name": "Declarație privind conflictul de interese",
-              "status": "incomplete",
-              "proposed": false,
-              "verified": false,
+              "status": "complete",
+              "proposed": true,
+              "verified": true,
               "subTasks": [],
               "notes": []
             },
             {
               "name": "Centralizator experienta similara",
-              "status": "incomplete",
-              "proposed": false,
-              "verified": false,
+              "status": "complete",
+              "proposed": true,
+              "verified": true,
               "subTasks": [],
               "notes": []
             },
             {
               "name": "Personal",
-              "status": "incomplete",
-              "proposed": false,
-              "verified": false,
+              "status": "complete",
+              "proposed": true,
+              "verified": true,
               "subTasks": [],
               "notes": []
             }
