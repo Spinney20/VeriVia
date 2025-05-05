@@ -827,6 +827,24 @@ const deleteNote = (idx) => {
             p: 2,
             height: "calc(100% - 220px)",
             overflowY: "auto",
+   // ==== SCROLLBAR STILIZAT PENTRU TASK-URI ====
+   "&::-webkit-scrollbar": {
+       width: "8px",
+     },
+     "&::-webkit-scrollbar-track": {
+       backgroundColor: "#f2f2f2",
+       borderRadius: 4,
+     },
+     "&::-webkit-scrollbar-thumb": {
+       backgroundColor: "#b5b5b5",
+       borderRadius: 4,
+     },
+    "&:hover::-webkit-scrollbar-thumb": {
+      backgroundColor: "#8f8f8f",
+    },
+     /* Firefox */
+     scrollbarWidth: "thin",
+     scrollbarColor: "#b5b5b5rgb(110, 107, 107)",
           }}
         >
           <FormGroup>
