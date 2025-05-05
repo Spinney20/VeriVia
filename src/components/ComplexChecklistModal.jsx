@@ -173,58 +173,146 @@ export default function ComplexChecklistModal({
   };
 
   const exportReport = async () => {
-    // 1. dialog „Save as…”
+    /* -------------------- DIALOG SALVARE -------------------- */
     const outPath = await save({
       title: "Salvează raportul PDF",
-      defaultPath: `${projectTitle}_${categoryName}.pdf`,
+      defaultPath: `Verivia_${categoryName}_${projectTitle}.pdf`,
       filters: [{ name: "Fișiere PDF", extensions: ["pdf"] }],
     });
     if (!outPath) return;
 
-    // 2. iniţiem documentul
+    /* -------------------- INIT DOCUMENT -------------------- */
     const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const left = 20;
+    const right = 20;
+    const headerY = 15;
+    const headerH = 25;
+    const lineH = 8;
+    const iconSize = 4;
 
+    /* -------------------- FONTS -------------------- */
     const [regBuf, boldBuf] = await Promise.all([
-      fetch(RobotoRegURL).then(r => r.arrayBuffer()),
-      fetch(RobotoBoldURL).then(r => r.arrayBuffer()),
+      fetch(RobotoRegURL).then((r) => r.arrayBuffer()),
+      fetch(RobotoBoldURL).then((r) => r.arrayBuffer()),
     ]);
+    const toB64 = (ab) => {
+      const bytes = new Uint8Array(ab);
+      const CHUNK = 0x8000;
+      let binary = "";
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+      }
+      return btoa(binary);
+    };
     doc.addFileToVFS("Roboto-Regular.ttf", toB64(regBuf));
-    doc.addFileToVFS("Roboto-Bold.ttf",    toB64(boldBuf));
+    doc.addFileToVFS("Roboto-Bold.ttf", toB64(boldBuf));
     doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
-    doc.addFont("Roboto-Bold.ttf",    "Roboto", "bold");
+    doc.addFont("Roboto-Bold.ttf", "Roboto", "bold");
 
-    /* ----------------- conţinutul paginii ----------------- */
-    const left  = 20;
-    const pageW = 210;
+    /* -------------------- HELPERS -------------------- */
+    //  👉 Returnează Y‑ul separatorului, astfel încât să putem ancora corect restul conținutului
+    const drawHeader = async () => {
+      doc.setFillColor(245, 245, 245);
+      doc.rect(0, headerY - 5, pageW, headerH, "F");
 
-    const logo  = await loadImg(antet);
-    const logoH = 13;
-    doc.addImage(logo, "PNG", left, 10, logoH * 4.8, logoH);
+      // logo stânga
+      const logo = await loadImg(antet);
+      const logoH = 12;
+      const logoW = logoH * 4.8;
+      doc.addImage(logo, "PNG", left, headerY, logoW, logoH);
 
-    doc.setFont("Roboto", "bold").setFontSize(26)
-       .text("Raport Verificare Verivia", pageW / 2, 35, { align: "center" });
+      // titlu dreapta
+      doc.setFont("Roboto", "bold").setFontSize(20).setTextColor(40);
+      doc.text("Raport Verificare Verivia", pageW - right, headerY + 7, {
+        align: "right",
+      });
 
-    doc.setFont("Roboto", "normal").setFontSize(22)
-       .text(projectTitle, pageW / 2, 43, { align: "center" })
-       .text(categoryName, pageW / 2, 50, { align: "center" });
+      // proiect + categorie – le împachetăm și calculăm înălțimea reală
+      const maxCenterWidth = pageW - left - right;
 
-    const check = await loadImg(checkboxPNG);
-    let y = 70;
-    const indent = 6, lineH = 7, icon = 5;
+      doc.setFont("Roboto", "bold").setFontSize(17).setTextColor(70);
+      const projectLines = doc.splitTextToSize(projectTitle, maxCenterWidth);
+      const projLineH = doc.getTextDimensions("A").h; // mm
+      let currentY = headerY + 27;
+      doc.text(projectLines, pageW / 2, currentY, { align: "center" });
+      currentY += projectLines.length * projLineH + 2; // mic spațiu
 
-    doc.setFont("Roboto", "normal").setFontSize(14);
+      doc.setFont("Roboto", "normal").setFontSize(15).setTextColor(100);
+      const categoryLines = doc.splitTextToSize(categoryName, maxCenterWidth);
+      const catLineH = doc.getTextDimensions("A").h;
+      doc.text(categoryLines, pageW / 2, currentY, { align: "center" });
+      currentY += categoryLines.length * catLineH;
+
+      // separator exact sub blocul complet
+      currentY += 4; // spațiu
+      doc.setDrawColor(200);
+      doc.line(left, currentY, pageW - right, currentY);
+
+      return currentY; // returnăm Y‑ul separatorului
+    };
+
+    const today = new Date().toLocaleDateString("ro-RO");
+    const drawFooter = (pageNo, totalPages) => {
+      doc.setDrawColor(200);
+      doc.line(left, pageH - 22, pageW - right, pageH - 22);
+
+      doc.setFontSize(10);
+
+      // "Verificat de" – negru
+      doc.setTextColor(0);
+      doc.text(`Verificat de: ${userName || "_________"}`, left, pageH - 17);
+
+      doc.setTextColor(100);
+      doc.text(`Data generării: ${today}`, pageW / 2, pageH - 17, {
+        align: "center",
+      });
+      doc.text(`Pag. ${pageNo} / ${totalPages}`, pageW - right, pageH - 17, {
+        align: "right",
+      });
+    };
+
+    /* -------------------- HEADER PAGINA 1 -------------------- */
+    const firstSeparatorY = await drawHeader();
+
+    /* -------------------- LISTA TASK-URI -------------------- */
+    const checkImg = await loadImg(checkboxPNG);
+    let y = firstSeparatorY + 10; // ↙ pornim la 10 mm sub separatorul real
+
+    doc.setFont("Roboto", "normal").setFontSize(13).setTextColor(20);
 
     const addRow = (txt, lvl) => {
-      const x = left + lvl * indent;
-      doc.addImage(check, "PNG", x, y - icon + 1, icon, icon);
-      doc.text(txt, x + icon + 2, y, {
-        maxWidth: pageW - left * 2 - icon - 2,
+      const startX = left + lvl * 8;
+      const maxWidth = pageW - right - startX - iconSize - 2;
+      const lines = doc.splitTextToSize(txt, maxWidth);
+
+      lines.forEach((line, idx) => {
+        if (y > pageH - 30) {
+          y += lineH;
+          doc.addPage();
+          y = headerY + 10;
+          awaitHeaderIfFirst();
+        }
+
+        if (idx === 0) {
+          doc.addImage(checkImg, "PNG", startX, y - iconSize + 1, iconSize, iconSize);
+          doc.text(line, startX + iconSize + 2, y);
+        } else {
+          doc.text(line, startX + iconSize + 2, y);
+        }
+        y += lineH;
       });
-      y += lineH;
-      if (y > 280) {
-        doc.addPage();
-        doc.setFont("Roboto", "normal").setFontSize(14);
-        y = 20;
+    };
+
+    let headerDrawnSecondTime = false;
+    const awaitHeaderIfFirst = async () => {
+      if (!headerDrawnSecondTime) {
+        await drawHeader();
+        headerDrawnSecondTime = true;
+      } else {
+        doc.setDrawColor(200);
+        doc.line(left, headerY + 5, pageW - right, headerY + 5);
       }
     };
 
@@ -233,11 +321,14 @@ export default function ComplexChecklistModal({
       t.subTasks?.forEach((s) => addRow(s.name, 1));
     });
 
-    doc.setFontSize(11)
-       .text(`Verificat de: ${userName || "_________"}`,
-             pageW - left, 287, { align: "right" });
+    /* -------------------- FOOTER PE TOATE PAGINILE -------------------- */
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      drawFooter(p, totalPages);
+    }
 
-    // 4. scriem pe disc – obligatoriu Uint8Array
+    /* -------------------- SALVARE -------------------- */
     try {
       const buf = doc.output("arraybuffer");
       await writeBinaryFile({ path: outPath, contents: new Uint8Array(buf) });
@@ -251,7 +342,7 @@ export default function ComplexChecklistModal({
   const loadImg = (src) =>
     new Promise((res) => {
       const img = new Image();
-      img.src   = src;
+      img.src = src;
       img.onload = () => res(img);
     });
 
