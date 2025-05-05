@@ -13,7 +13,24 @@
               "status": "complete",
               "proposed": true,
               "verified": true,
-              "subTasks": [],
+              "subTasks": [
+                {
+                  "name": "subtask1_test",
+                  "status": "complete",
+                  "proposed": true,
+                  "verified": true,
+                  "subTasks": [],
+                  "notes": []
+                },
+                {
+                  "name": "subtask2_test",
+                  "status": "complete",
+                  "proposed": true,
+                  "verified": true,
+                  "subTasks": [],
+                  "notes": []
+                }
+              ],
               "notes": [
                 {
                   "user": "NumeUtilizator",

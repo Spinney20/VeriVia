@@ -34,7 +34,13 @@ import antet from "../images/viarom_antet.jpg";
 import { save } from "@tauri-apps/api/dialog";
 import { writeBinaryFile } from "@tauri-apps/api/fs";
 import { jsPDF } from "jspdf";
-import DejaVu from "../fonts/DejaVuSans.ttf";
+
+// ▸ spune bundler-ului să copieze fişierele în /dist şi să-ţi dea URL-ul lor
+import RobotoRegURL  from "../fonts/Roboto-Regular.ttf?url";
+import RobotoBoldURL from "../fonts/Roboto-Bold.ttf?url";
+
+// ▸ PNG-ul bifă ce apare în listă şi în PDF
+import checkboxPNG   from "../images/checkbox.png";
 
 const LockedCheckbox = React.forwardRef(
   ({ lock, sx, ...others }, ref) => (
@@ -156,85 +162,98 @@ export default function ComplexChecklistModal({
     return { checked: all, indeterminate: some && !all };
   };
 
+  const toB64 = (ab) => {
+    const bytes = new Uint8Array(ab);
+    const CHUNK = 0x8000;
+    let binary  = '';
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(binary);
+  };
+
   const exportReport = async () => {
-    // 1. Alege unde salvezi
+    // 1. dialog „Save as…”
     const outPath = await save({
       title: "Salvează raportul PDF",
-      filters: [{ name: "PDF file", extensions: ["pdf"] }],
       defaultPath: `${projectTitle}_${categoryName}.pdf`,
+      filters: [{ name: "Fișiere PDF", extensions: ["pdf"] }],
     });
-    if (!outPath) return; // user pressed Cancel
+    if (!outPath) return;
 
-    // 2. Construiește doc-ul
+    // 2. iniţiem documentul
     const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const left = 20;
+
+    const [regBuf, boldBuf] = await Promise.all([
+      fetch(RobotoRegURL).then(r => r.arrayBuffer()),
+      fetch(RobotoBoldURL).then(r => r.arrayBuffer()),
+    ]);
+    doc.addFileToVFS("Roboto-Regular.ttf", toB64(regBuf));
+    doc.addFileToVFS("Roboto-Bold.ttf",    toB64(boldBuf));
+    doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+    doc.addFont("Roboto-Bold.ttf",    "Roboto", "bold");
+
+    /* ----------------- conţinutul paginii ----------------- */
+    const left  = 20;
     const pageW = 210;
-    const usable = pageW - left * 2;
 
-    // 2.1 Antet cu imagine
+    const logo  = await loadImg(antet);
     const logoH = 13;
-    // Încarcă imaginea într-un obiect Image pentru siguranță
-    const img = new Image();
-    img.src = antet;
-    await new Promise((r) => (img.onload = r));
+    doc.addImage(logo, "PNG", left, 10, logoH * 4.8, logoH);
 
-    // Adaugă antetul în colțul stânga-sus
-    doc.addImage(img, "PNG", left, 10, logoH * 4.8 , logoH);
+    doc.setFont("Roboto", "bold").setFontSize(26)
+       .text("Raport Verificare Verivia", pageW / 2, 35, { align: "center" });
 
-    // Titlurile
-    doc
-      .setFontSize(26)
-      .setFont("helvetica", "bold")
-      .text("Raport Verificare Verivia", pageW / 2, 35, { align: "center" });
+    doc.setFont("Roboto", "normal").setFontSize(22)
+       .text(projectTitle, pageW / 2, 43, { align: "center" })
+       .text(categoryName, pageW / 2, 50, { align: "center" });
 
-    doc
-      .setFontSize(22)
-      .setFont("helvetica", "normal")
-      .text(projectTitle, pageW / 2, 43, { align: "center" })
-      .text(categoryName, pageW / 2, 50, { align: "center" });
-
+    const check = await loadImg(checkboxPNG);
     let y = 70;
+    const indent = 6, lineH = 7, icon = 5;
 
-    doc
-      .setFontSize(14)
-      .setFont("helvetica", "normal")
+    doc.setFont("Roboto", "normal").setFontSize(14);
 
-    // 2.2 Tabel task-uri
-    const indent = 6;
-    const lineH = 7;
-    const addLine = (txt, level, status) => {
-      const x = left + level * indent;
-      // codurile Unicode pentru box & checked box
-      const glyph = status === "complete" ? "\u2611" : "\u2610";
-      doc.text(glyph, x, y);
-      doc.text(txt, x + 6, y);
+    const addRow = (txt, lvl) => {
+      const x = left + lvl * indent;
+      doc.addImage(check, "PNG", x, y - icon + 1, icon, icon);
+      doc.text(txt, x + icon + 2, y, {
+        maxWidth: pageW - left * 2 - icon - 2,
+      });
       y += lineH;
       if (y > 280) {
         doc.addPage();
+        doc.setFont("Roboto", "normal").setFontSize(14);
         y = 20;
       }
     };
 
     items.forEach((t) => {
-      addLine(t.name, 0, t.status);
-      t.subTasks?.forEach((s) => addLine(s.name, 1, s.status));
+      addRow(t.name, 0);
+      t.subTasks?.forEach((s) => addRow(s.name, 1));
     });
 
-    // 2.3 Footer cu semnătura
-    doc.setFontSize(11);
-    doc.text(
-      `Verificat de: ${userName || "_________"}`,
-      pageW - left,
-      287,
-      { align: "right" }
-    );
+    doc.setFontSize(11)
+       .text(`Verificat de: ${userName || "_________"}`,
+             pageW - left, 287, { align: "right" });
 
-    // 3. Scrie fișierul pe disc
-    const pdfBytes = doc.output("arraybuffer"); // Uint8Array
-    await writeBinaryFile({ path: outPath, contents: pdfBytes });
-
-    alert("Raport salvat cu succes!");
+    // 4. scriem pe disc – obligatoriu Uint8Array
+    try {
+      const buf = doc.output("arraybuffer");
+      await writeBinaryFile({ path: outPath, contents: new Uint8Array(buf) });
+      alert("Raport salvat cu succes!");
+    } catch (e) {
+      console.error("Eroare la scriere PDF:", e);
+      alert("Nu am reuşit să salvez PDF-ul.\nVezi consola pentru detalii.");
+    }
   };
+
+  const loadImg = (src) =>
+    new Promise((res) => {
+      const img = new Image();
+      img.src   = src;
+      img.onload = () => res(img);
+    });
 
   const getFlagState = (item, flag) => {
     if (!item.subTasks || item.subTasks.length === 0)
