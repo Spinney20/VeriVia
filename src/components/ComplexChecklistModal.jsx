@@ -541,6 +541,7 @@ const deleteNote = (idx) => {
         proposed: false,
         verified: false,
         subTasks: [],
+        notes: [],
       },
     ]);
     setNewMainTask("");
@@ -557,6 +558,7 @@ const deleteNote = (idx) => {
         proposed: false,
         verified: false,
         subTasks: [],
+        notes: [],
       });
       return n;
     });
