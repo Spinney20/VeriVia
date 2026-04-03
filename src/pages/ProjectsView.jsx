@@ -1,6 +1,6 @@
 // src/pages/ProjectsView.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
+import { api, IS_TAURI } from "../api/client";
 
 // MUI
 import Box from "@mui/material/Box";
@@ -33,7 +33,6 @@ import TehnicModal from "../components/TehnicModal";
 
 import { useAuth }     from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { listen } from "@tauri-apps/api/event";
 
 export default function ProjectsView() {
   const [expandedProjects, setExpandedProjects] = useState([]);
@@ -83,8 +82,8 @@ export default function ProjectsView() {
   const loadYears = async () => {
     try {
       const [ y, active ] = await Promise.all([
-        invoke("list_years"),
-        invoke("get_active_year")
+        api.listYears(),
+        api.getActiveYear()
       ]);
       const sorted = [...y].sort((a, b) => Number(a) - Number(b));
       setYears(sorted);
@@ -97,7 +96,7 @@ export default function ProjectsView() {
 
 const handleSwitchYear = async (yr) => {
   try {
-    await invoke("switch_year", { year: yr });
+    await api.switchYear(yr);
     setCurrentYear(yr);
     fetchDbData();           // re-încarcă proiectele
   } catch (e) {
@@ -107,7 +106,7 @@ const handleSwitchYear = async (yr) => {
 
 const handleAddYear = async () => {
   try {
-    const newY = await invoke("add_year");    // backend face și switch
+    const newY = await api.addYear();    // backend face și switch
     await loadYears();
     setCurrentYear(newY);
     fetchDbData();
@@ -118,7 +117,7 @@ const handleAddYear = async () => {
 };
   async function fetchDbData() {
     try {
-      const data = await invoke("load_projects");
+      const data = await api.loadProjects();
       setDbData(data);
     } catch (err) {
       console.error("Eroare la load_projects:", err);
@@ -130,21 +129,22 @@ const handleAddYear = async () => {
     // 2) prima încărcare de proiecte
     fetchDbData();
 
-    // 3) ascultăm evenimente din backend
-    const unlistenAdded = listen("project_added", () => {
-      fetchDbData();
-    });
-
-    const unlistenYear = listen("year_switched", (e) => {
-      // backend întoarce anul nou în payload
-      setCurrentYear(e.payload);
-      fetchDbData();
-    });
+    // 3) ascultăm evenimente din backend (Tauri-only)
+    let unlistenAdded, unlistenYear;
+    if (IS_TAURI) {
+      import("@tauri-apps/api/event").then(({ listen }) => {
+        listen("project_added", () => fetchDbData()).then(u => { unlistenAdded = u; });
+        listen("year_switched", (e) => {
+          setCurrentYear(e.payload);
+          fetchDbData();
+        }).then(u => { unlistenYear = u; });
+      });
+    }
 
     // 4) cleanup
     return () => {
-      unlistenAdded.then((u) => u());
-      unlistenYear.then((u) => u());
+      unlistenAdded?.();
+      unlistenYear?.();
     };
   }, []);
 
@@ -207,7 +207,7 @@ const handleAddYear = async () => {
   const handleDeleteProject = async (projectId) => {
     if (!window.confirm("Ești sigur că vrei să ștergi acest proiect?")) return;
     try {
-      await invoke("delete_project", { id: projectId });
+      await api.deleteProject(projectId);
       alert("Proiect șters cu succes!");
       fetchDbData();
     } catch (err) {
@@ -229,11 +229,7 @@ const handleAddYear = async () => {
     }
 
     try {
-      await invoke("edit_project", {
-        id: selectedProject.id,
-        newTitle: editProjectTitle,
-        newDate: editProjectDate,
-      });
+      await api.editProject(selectedProject.id, editProjectTitle, editProjectDate);
       alert("Proiect modificat cu succes!");
       setShowEditModal(false);
       fetchDbData();
@@ -255,10 +251,7 @@ const handleAddYear = async () => {
       return;
     }
     try {
-      await invoke("add_project", {
-        title: newProjectTitle,
-        date: newProjectDate,
-      });
+      await api.addProject(newProjectTitle, newProjectDate);
       alert("Proiect adăugat cu succes!");
       handleCloseModal();
       fetchDbData();
@@ -318,30 +311,30 @@ function formatMonthDay(fullDate) {
   return `${MM}.${DD}`;
 }
 
-const saveChecklist = async (updatedTasks, catKey, newExcelPath) => {
+const saveChecklist = async (updatedTasks, catKey) => {
     if (!selectedProject) return;
-    const updatedProjects = dbData.projects.map((proj) => {
-      if (proj.id === selectedProject.id) {
-        const updatedCategories = proj.categories.map((cat) => {
-          if (cat.name.toLowerCase() !== catKey) return cat;
-          // pentru Tehnic includem și excelPath:
-          return {
-          ...cat,
-          checklist: updatedTasks,
-          ...(newExcelPath !== undefined && { excelPath: newExcelPath })
-          };
-          });
-        return { ...proj, categories: updatedCategories };
-      }
-      return proj;
-    });
-    const updatedDbData = { projects: updatedProjects };
     try {
-      await invoke("save_projects", {
-        new_data: JSON.stringify(updatedDbData, null, 2),
-      });
+      // Find the proper category name (preserving case)
+      const cat = selectedProject.categories.find(
+        (c) => c.name.toLowerCase() === catKey
+      );
+      const categoryName = cat?.name || catKey;
+
+      await api.saveChecklist(selectedProject.id, categoryName, updatedTasks);
       alert("Modificări salvate!");
-      setDbData(updatedDbData);
+
+      // Update local state
+      setDbData((prev) => ({
+        projects: prev.projects.map((proj) => {
+          if (proj.id !== selectedProject.id) return proj;
+          return {
+            ...proj,
+            categories: proj.categories.map((c) =>
+              c.name.toLowerCase() !== catKey ? c : { ...c, checklist: updatedTasks }
+            ),
+          };
+        }),
+      }));
     } catch (err) {
       console.error("Eroare la salvare:", err);
     }

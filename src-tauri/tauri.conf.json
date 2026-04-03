@@ -22,8 +22,7 @@
         "writeFile": true
       },
       "shell": {
-        "all": true,
-        "execute": true,
+        "all": false,
         "open": ".*"
       }
     },

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ComplexChecklistModal from "./ComplexChecklistModal";
-import { invoke } from "@tauri-apps/api/tauri";
-import { open as openDialog } from "@tauri-apps/api/dialog";
+import { api, IS_TAURI } from "../api/client";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -47,7 +46,7 @@ export default function TehnicModal({
         if (!open) return;
         (async () => {
           try {
-            const data = await invoke("load_projects");
+            const data = await api.loadProjects();
             const proj = data.projects.find(p => p.id === projectId);
             const cat  = proj.categories.find(c => c.name.toLowerCase() === "tehnic");
             const dbPath = cat?.excelPath || null;
@@ -62,6 +61,8 @@ export default function TehnicModal({
 
   /* încărcare nouă */
   const handleAddExcel = async () => {
+    if (!IS_TAURI) return; // Excel import is desktop-only
+    const { open: openDialog } = await import("@tauri-apps/api/dialog");
     const filePath = await openDialog({
       filters: [{ name: "Excel Files", extensions: ["xlsx", "xls"] }],
       multiple: false,
@@ -81,11 +82,11 @@ export default function TehnicModal({
   const loadExcel = async (filePath, silent = false) => {
     setLoadingExcel(true);
     try {
-      const data = await invoke("load_technical_data", { filePath });
+      const data = await api.loadTechnicalData(filePath);
       setExcelData(data);
       setExcelPath(filePath);
 
-      await invoke("save_excel_path", { project_id: projectId, path: filePath });
+      await api.saveExcelPath(projectId, filePath);
       onExcelPathSaved?.(filePath);
 
       if (!silent) {

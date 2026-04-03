@@ -27,12 +27,10 @@ import NoteIcon          from "@mui/icons-material/NoteAdd";
 import LockIcon          from "@mui/icons-material/Lock";
 import Tooltip           from "@mui/material/Tooltip";
 
-import { invoke } from "@tauri-apps/api/tauri";
+import { api, IS_TAURI } from "../api/client";
 
 // pentru PDF
 import antet from "../images/viarom_antet.jpg";
-import { save } from "@tauri-apps/api/dialog";
-import { writeBinaryFile } from "@tauri-apps/api/fs";
 import { jsPDF } from "jspdf";
 
 // ▸ spune bundler-ului să copieze fişierele în /dist şi să-ţi dea URL-ul lor
@@ -174,12 +172,16 @@ export default function ComplexChecklistModal({
 
   const exportReport = async () => {
     /* -------------------- DIALOG SALVARE -------------------- */
-    const outPath = await save({
-      title: "Salvează raportul PDF",
-      defaultPath: `Verivia_${categoryName}_${projectTitle}.pdf`,
-      filters: [{ name: "Fișiere PDF", extensions: ["pdf"] }],
-    });
-    if (!outPath) return;
+    let outPath = null;
+    if (IS_TAURI) {
+      const { save } = await import("@tauri-apps/api/dialog");
+      outPath = await save({
+        title: "Salvează raportul PDF",
+        defaultPath: `Verivia_${categoryName}_${projectTitle}.pdf`,
+        filters: [{ name: "Fișiere PDF", extensions: ["pdf"] }],
+      });
+      if (!outPath) return;
+    }
 
     /* -------------------- INIT DOCUMENT -------------------- */
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -330,9 +332,16 @@ export default function ComplexChecklistModal({
 
     /* -------------------- SALVARE -------------------- */
     try {
-      const buf = doc.output("arraybuffer");
-      await writeBinaryFile({ path: outPath, contents: new Uint8Array(buf) });
-      alert("Raport salvat cu succes!");
+      if (IS_TAURI && outPath) {
+        // Desktop: write to filesystem via Tauri
+        const { writeBinaryFile } = await import("@tauri-apps/api/fs");
+        const buf = doc.output("arraybuffer");
+        await writeBinaryFile({ path: outPath, contents: new Uint8Array(buf) });
+        alert("Raport salvat cu succes!");
+      } else {
+        // Web: browser download
+        doc.save(`Verivia_${categoryName}_${projectTitle}.pdf`);
+      }
     } catch (e) {
       console.error("Eroare la scriere PDF:", e);
       alert("Nu am reuşit să salvez PDF-ul.\nVezi consola pentru detalii.");
@@ -360,7 +369,7 @@ export default function ComplexChecklistModal({
   useEffect(() => {
     async function fetchData() {
       try {
-        const data = await invoke("load_projects");
+        const data = await api.loadProjects();
         setDbData(data);
 
         const project  = data.projects?.find((p) => p.title === projectTitle);
@@ -637,33 +646,15 @@ const deleteNote = (idx) => {
   // 8) Salvare finală – parametru corect: new_data
   // -----------------------------------------------------
   const handleSave = async () => {
-    if (!dbData) return;
-    const updated = { ...dbData };
-    const pIdx = updated.projects?.findIndex((p) => p.title === projectTitle);
-    if (pIdx === -1) return;
-    const cIdx = updated.projects[pIdx].categories?.findIndex(
-      (c) => c.name === categoryName
-    );
-    if (cIdx === -1) return;
-
-    const cat = updated.projects[pIdx].categories[cIdx];
-    cat.checklist = items;
-
-    if (excelPath) {
-      cat.excelPath = excelPath;
-    }
-
+    // Save is handled by the parent via onConfirm callback.
+    // This avoids double-saving (once here, once in parent's saveChecklist).
     try {
-      await invoke("save_projects", {
-        new_data: JSON.stringify(updated, null, 2),
-        newData : JSON.stringify(updated, null, 2),
-      });
-      console.log("Salvat cu succes");
+      if (onConfirm) await onConfirm(items);
       setHasUnsavedChanges(false);
-      onConfirm && onConfirm(items);
       onClose();
     } catch (err) {
       console.error("Eroare la salvare:", err);
+      alert("Eroare la salvare. Încearcă din nou.");
     }
   };
 

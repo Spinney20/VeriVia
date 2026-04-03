@@ -1,7 +1,7 @@
 // src/pages/LoginView.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { invoke }      from "@tauri-apps/api/tauri";
+import { api }         from "../api/client";
 import { useAuth }     from "../auth/AuthContext";
 import appIcon         from "../images/app_icon.ico";
 
@@ -80,11 +80,7 @@ export default function LoginView() {
       return;
     }
     try {
-      await invoke("auth_register", {
-        mail:     regMail.trim(),
-        password: regPass,
-        roles:    regRoles
-      });
+      await api.register(regMail.trim(), regPass, regRoles);
       setShowReg(false);
     } catch (e) {
       setRegError(String(e));

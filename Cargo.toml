@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "crates/verivia-core",
+    "src-tauri",
+    # "server",           # uncomment when building web version
+]
+resolver = "2"

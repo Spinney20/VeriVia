@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
+import { api } from "../api/client";
 
 const AuthContext = createContext(null);
 
@@ -23,8 +23,12 @@ export function AuthProvider({ children }) {
 
   // ------------ API public ----------------
   const login = async (mail, password, rememberMe = true) => {
-    // apelez comanda Rust – poate arunca eroare string
-    const loggedUser = await invoke("auth_login", { mail, password });
+    const resp = await api.login(mail, password);
+    // resp = { token, user: { mail, roles } }
+    const loggedUser = resp.user || resp;
+    if (resp.token) {
+      localStorage.setItem("token", resp.token);
+    }
     setUser(loggedUser);
     if (rememberMe) {
       localStorage.setItem("loggedUser", JSON.stringify(loggedUser));
@@ -33,6 +37,7 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem("loggedUser");
+    localStorage.removeItem("token");
     setUser(null);
   };
 
