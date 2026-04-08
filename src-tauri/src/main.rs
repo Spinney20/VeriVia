@@ -411,15 +411,31 @@ fn open_folder(app: AppHandle, path: String) -> Result<(), String> {
 // ═══════════════════════════════════════════════════════════════
 
 fn main() {
-    // Load DATABASE_URL from .env file or environment
+    // Load DATABASE_URL from environment or .env file
     let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-        // Try reading from .env file next to executable
-        let env_path = exe_dir().join(".env");
-        if env_path.exists() {
-            if let Ok(content) = fs::read_to_string(&env_path) {
-                for line in content.lines() {
-                    if let Some(url) = line.strip_prefix("DATABASE_URL=") {
-                        return url.trim().to_string();
+        // Try multiple .env locations:
+        // 1) Current working directory (dev mode — project root)
+        // 2) Next to executable (production — installed app)
+        let candidates = [
+            std::env::current_dir().unwrap_or_default().join(".env"),
+            exe_dir().join(".env"),
+        ];
+
+        for env_path in &candidates {
+            if env_path.exists() {
+                if let Ok(content) = fs::read_to_string(env_path) {
+                    for line in content.lines() {
+                        let line = line.trim();
+                        if line.starts_with('#') || line.is_empty() { continue; }
+                        if let Some(val) = line.strip_prefix("DATABASE_URL=") {
+                            // Strip surrounding quotes if present
+                            let val = val.trim();
+                            let val = val.strip_prefix('"').unwrap_or(val);
+                            let val = val.strip_suffix('"').unwrap_or(val);
+                            let val = val.strip_prefix('\'').unwrap_or(val);
+                            let val = val.strip_suffix('\'').unwrap_or(val);
+                            return val.to_string();
+                        }
                     }
                 }
             }

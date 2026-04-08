@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/verivia-core",
+    "crates/migrate-json",
     "src-tauri",
     # "server",           # uncomment when building web version
 ]

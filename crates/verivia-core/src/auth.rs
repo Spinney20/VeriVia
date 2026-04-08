@@ -88,28 +88,18 @@ pub async fn register(
 
     let mut tx = pool.begin().await?;
 
-    // Check uniqueness inside transaction (prevents TOCTOU race)
-    let exists = sqlx::query_scalar!(
-        "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1) as \"exists!\"",
-        email
-    )
-    .fetch_one(&mut *tx)
-    .await?;
-
-    if exists {
-        return Err(AppError::Validation(
-            "Există deja un cont cu această adresă".into(),
-        ));
-    }
-
-    // Insert user
+    // INSERT with ON CONFLICT — handles both the normal case (email already exists)
+    // and the race condition (two concurrent transactions)
     let user_id = sqlx::query_scalar!(
-        "INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id",
+        "INSERT INTO users (email, password_hash) VALUES ($1, $2)
+         ON CONFLICT (email) DO NOTHING
+         RETURNING id",
         email,
         password_hash
     )
-    .fetch_one(&mut *tx)
-    .await?;
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or_else(|| AppError::Validation("Există deja un cont cu această adresă".into()))?;
 
     // Insert roles
     for (category, flags) in roles {

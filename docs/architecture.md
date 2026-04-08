@@ -466,28 +466,28 @@ disabled or replaced with web-compatible alternatives.
 
 ## 8. Migration Plan (v1 → v2)
 
-### Phase 1: Database (Current priority)
+### Phase 1: Database ✅
 
-1. Create Neon PostgreSQL account + project
-2. Write SQL migrations (schema from Section 4)
-3. Add `sqlx` + `jsonwebtoken` to `verivia-core`
-4. Implement core functions: `db.rs`, `models.rs`, `auth.rs`, `projects.rs`, `checklist.rs`, `notes.rs`
-5. Write a one-time migration script to import existing `projects.json` + `users.json` into PostgreSQL
-6. Delete `src/db/users.json` from repo (contains password hashes in public repo)
+1. ~~Create Neon PostgreSQL account + project~~ → user task
+2. ✅ Write SQL migrations (5 files in `crates/verivia-core/migrations/`)
+3. ✅ Add `sqlx` + `jsonwebtoken` to `verivia-core`
+4. ✅ Implement core functions: `db.rs`, `models.rs`, `auth.rs`, `projects.rs`, `checklist.rs`, `notes.rs`
+5. ✅ Migration script: `cargo run -p migrate-json -- --projects <path> --users <path>`
+6. ✅ `users.json` removed from repo. `schema.sql` removed (replaced by migrations)
 
-### Phase 2: Restructure Rust
+### Phase 2: Restructure Rust ✅
 
-7. Create Cargo workspace with `verivia-core` crate
-8. Move business logic from `main.rs` into core modules
-9. Slim down `desktop/src-tauri/main.rs` to thin Tauri command wrappers
-10. Keep desktop-only features (watcher, file dialogs) in `desktop/` only
+7. ✅ Cargo workspace with `verivia-core` + `migrate-json` crates
+8. ✅ Business logic moved from `main.rs` into core modules
+9. ✅ `main.rs` is thin Tauri command wrappers only
+10. ✅ Desktop-only features (watcher, dialogs, config.json) stay in `main.rs`
 
-### Phase 3: Frontend Abstraction
+### Phase 3: Frontend Abstraction (partially done)
 
-11. Create `frontend/src/api/client.js` with `IS_TAURI` detection
-12. Replace all `invoke()` calls across components with `api.xxx()` calls
-13. Move frontend from `src/` to `frontend/src/`
-14. Update `vite.config.js` and `tauri.conf.json` paths accordingly
+11. ✅ `src/api/client.js` with `IS_TAURI` detection
+12. ✅ All `invoke()` calls replaced with `api.xxx()` across components
+13. DEFERRED: Move `src/` → `frontend/src/` (do after first successful build — can't test path changes without compiling)
+14. DEFERRED: Update `vite.config.js` and `tauri.conf.json` paths
 
 ### Phase 3.5: Granular Operations (Recommended before multi-user)
 

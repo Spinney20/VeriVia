@@ -130,21 +130,28 @@ const handleAddYear = async () => {
     fetchDbData();
 
     // 3) ascultăm evenimente din backend (Tauri-only)
-    let unlistenAdded, unlistenYear;
+    let cancelled = false;
+    const unlistenFns = [];
+
     if (IS_TAURI) {
       import("@tauri-apps/api/event").then(({ listen }) => {
-        listen("project_added", () => fetchDbData()).then(u => { unlistenAdded = u; });
+        if (cancelled) return; // component already unmounted
+        listen("project_added", () => fetchDbData()).then(u => {
+          if (cancelled) { u(); } else { unlistenFns.push(u); }
+        });
         listen("year_switched", (e) => {
           setCurrentYear(e.payload);
           fetchDbData();
-        }).then(u => { unlistenYear = u; });
+        }).then(u => {
+          if (cancelled) { u(); } else { unlistenFns.push(u); }
+        });
       });
     }
 
     // 4) cleanup
     return () => {
-      unlistenAdded?.();
-      unlistenYear?.();
+      cancelled = true;
+      unlistenFns.forEach(fn => fn());
     };
   }, []);
 
