@@ -476,6 +476,10 @@ fn main() {
             current_year: Mutex::new(initial_year.clone()),
         })
         .setup(move |app| {
+            // Resolve projects dir ONCE on the main thread (shows picker if empty)
+            // — prevents concurrent sync/watcher from both opening dialogs
+            let _ = get_projects_dir();
+
             // Initial folder sync
             let pool_clone = pool.clone();
             let year = initial_year.clone();
