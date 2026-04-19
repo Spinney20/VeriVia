@@ -85,7 +85,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut projects_path: Option<String> = None;
     let mut users_path: Option<String> = None;
-    let mut year = "2025".to_string();
+    let mut year = "2026".to_string();
 
     let mut i = 1;
     while i < args.len() {
@@ -93,7 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "--projects" | "--users" | "--year" => {
                 if i + 1 >= args.len() {
                     eprintln!("Error: {} requires a value", args[i]);
-                    eprintln!("Usage: migrate-json --projects <path> --users <path> [--year 2025]");
+                    eprintln!("Usage: migrate-json --projects <path> --users <path> [--year 2026]");
                     std::process::exit(1);
                 }
                 match args[i].as_str() {
@@ -106,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             _ => {
                 eprintln!("Unknown argument: {}", args[i]);
-                eprintln!("Usage: migrate-json --projects <path> --users <path> [--year 2025]");
+                eprintln!("Usage: migrate-json --projects <path> --users <path> [--year 2026]");
                 std::process::exit(1);
             }
         }

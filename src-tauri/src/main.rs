@@ -42,7 +42,7 @@ fn cfg_path() -> PathBuf {
 fn load_cfg() -> Value {
     let p = cfg_path();
     if !p.exists() {
-        let skeleton = json!({ "current_year": "2025", "years": { "2025": {} } });
+        let skeleton = json!({ "current_year": "2026", "years": { "2026": {} } });
         let _ = fs::write(&p, serde_json::to_string_pretty(&skeleton).unwrap());
         return skeleton;
     }
@@ -309,7 +309,7 @@ async fn list_years(pool: State<'_, PgPool>) -> Result<Vec<String>, String> {
             years = obj.keys().cloned().collect();
         }
         if years.is_empty() {
-            years.push("2025".to_string());
+            years.push("2026".to_string());
         }
     }
     years.sort();
@@ -356,7 +356,7 @@ fn add_year() -> Result<String, String> {
         .keys()
         .filter_map(|y| y.parse::<u32>().ok())
         .max()
-        .unwrap_or(2025);
+        .unwrap_or(2026);
 
     let new_year = (max_year + 1).to_string();
 
@@ -466,7 +466,7 @@ fn main() {
     let cfg = load_cfg();
     let initial_year = cfg["current_year"]
         .as_str()
-        .unwrap_or("2025")
+        .unwrap_or("2026")
         .to_string();
 
     tauri::Builder::default()
