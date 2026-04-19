@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE checklist_items SET verified = $1 WHERE parent_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5f6451cc94698d0753c7fcb60340b765cee81859cad3b88d72d79c1a1e8af99e"
+}

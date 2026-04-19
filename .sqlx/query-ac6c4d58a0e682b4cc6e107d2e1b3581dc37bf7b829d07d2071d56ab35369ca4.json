@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE categories SET excel_path = $1 WHERE project_id = $2 AND LOWER(name) = 'tehnic'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ac6c4d58a0e682b4cc6e107d2e1b3581dc37bf7b829d07d2071d56ab35369ca4"
+}

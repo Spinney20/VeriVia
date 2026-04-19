@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO notes (item_id, \"user\", date, text)\n           VALUES ($1, $2, $3, $4)\n           RETURNING id, item_id, \"user\", date, text",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "item_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "user",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "date",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "text",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "533bf43b5b7fd534960174d8dc0eecadc1bf26d1424dcccdf77fd5f9058be73e"
+}

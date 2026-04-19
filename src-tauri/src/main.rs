@@ -415,9 +415,12 @@ fn main() {
     let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
         // Try multiple .env locations:
         // 1) Current working directory (dev mode — project root)
-        // 2) Next to executable (production — installed app)
+        // 2) Parent of cwd (dev mode — when Tauri runs from src-tauri/)
+        // 3) Next to executable (production — installed app)
+        let cwd = std::env::current_dir().unwrap_or_default();
         let candidates = [
-            std::env::current_dir().unwrap_or_default().join(".env"),
+            cwd.join(".env"),
+            cwd.parent().map(|p| p.join(".env")).unwrap_or_default(),
             exe_dir().join(".env"),
         ];
 
