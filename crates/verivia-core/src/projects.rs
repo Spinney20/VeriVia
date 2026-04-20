@@ -54,7 +54,7 @@ pub async fn list_projects(pool: &PgPool, year: &str) -> Result<Vec<ProjectFull>
     // 3) All checklist items for those categories (1 query)
     let all_items = sqlx::query_as!(
         ChecklistItem,
-        "SELECT id, category_id, parent_id, name, proposed, verified, sort_order
+        "SELECT id, category_id, parent_id, name, proposed, verified, sort_order, proposed_by, verified_by
          FROM checklist_items WHERE category_id = ANY($1) ORDER BY sort_order, id",
         &category_ids
     )
@@ -176,6 +176,8 @@ fn build_nested(
         status: status.to_string(),
         notes,
         sub_tasks,
+        proposed_by: item.proposed_by.clone(),
+        verified_by: item.verified_by.clone(),
     }
 }
 
@@ -241,6 +243,15 @@ pub async fn edit_project(pool: &PgPool, id: i32, new_title: &str, new_date: &st
 }
 
 // ─────────────────────────── Delete Project ───────────────────────────
+
+/// Fetch just the on-disk path for a project (if any).
+/// Desktop layer uses this to guard delete against existing folders.
+pub async fn get_project_path(pool: &PgPool, id: i32) -> Result<Option<String>> {
+    let row = sqlx::query!("SELECT path FROM projects WHERE id = $1", id)
+        .fetch_optional(pool)
+        .await?;
+    Ok(row.and_then(|r| r.path))
+}
 
 pub async fn delete_project(pool: &PgPool, id: i32) -> Result<()> {
     let rows = sqlx::query!("DELETE FROM projects WHERE id = $1", id)

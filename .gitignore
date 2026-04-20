@@ -6,3 +6,4 @@ src-tauri/target/
 *.node
 .DS_Store
 .env
+docs/TEST_MANUAL.md

@@ -72,5 +72,7 @@ fn new_nested_item(name: &str) -> ChecklistItemNested {
         status: "incomplete".to_string(),
         notes: Vec::new(),
         sub_tasks: Vec::new(),
+        proposed_by: None,
+        verified_by: None,
     }
 }

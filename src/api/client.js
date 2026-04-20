@@ -65,12 +65,12 @@ export const api = {
     // Projects
     loadProjects: () => call("load_projects"),
     addProject: (title, date) => call("add_project", { title, date }),
-    editProject: (id, newTitle, newDate) => call("edit_project", { id, new_title: newTitle, new_date: newDate }),
+    editProject: (id, newTitle, newDate) => call("edit_project", { id, newTitle, newDate }),
     deleteProject: (id) => call("delete_project", { id }),
 
     // Checklist — save a single category's checklist
     saveChecklist: (projectId, categoryName, items) =>
-        call("save_checklist", { project_id: projectId, category_name: categoryName, items }),
+        call("save_checklist", { projectId, categoryName, items }),
 
     // Years
     listYears: () => call("list_years"),
@@ -83,14 +83,14 @@ export const api = {
     loadUsers: () => call("load_users"),
 
     // Excel (desktop-only)
-    loadTechnicalData: (filePath) => call("load_technical_data", { file_path: filePath }),
+    loadTechnicalData: (filePath) => call("load_technical_data", { filePath }),
     saveExcelPath: (projectId, path) =>
-        call("save_excel_path", { project_id: projectId, path }),
+        call("save_excel_path", { projectId, path }),
 
     // Folder (desktop-only)
     openFolder: (path) => call("open_folder", { path }),
     saveProjectFolder: (projectId, folder) =>
-        call("save_project_folder", { project_id: projectId, folder }),
+        call("save_project_folder", { projectId, folder }),
 };
 
 export { IS_TAURI };

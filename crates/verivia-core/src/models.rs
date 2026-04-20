@@ -82,6 +82,8 @@ pub struct ChecklistItem {
     pub proposed: bool,
     pub verified: bool,
     pub sort_order: i32,
+    pub proposed_by: Option<String>,
+    pub verified_by: Option<String>,
 }
 
 // ─────────────────────────── Notes ───────────────────────────
@@ -132,6 +134,10 @@ pub struct ChecklistItemNested {
     pub notes: Vec<NoteNested>,
     #[serde(default, rename = "subTasks")]
     pub sub_tasks: Vec<ChecklistItemNested>,
+    #[serde(default, rename = "proposedBy", skip_serializing_if = "Option::is_none")]
+    pub proposed_by: Option<String>,
+    #[serde(default, rename = "verifiedBy", skip_serializing_if = "Option::is_none")]
+    pub verified_by: Option<String>,
 }
 
 /// Note as the frontend sees it — just user, date, text

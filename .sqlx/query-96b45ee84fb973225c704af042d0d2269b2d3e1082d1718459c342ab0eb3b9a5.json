@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO checklist_items (category_id, parent_id, name, proposed, verified, sort_order)\n                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+  "query": "INSERT INTO checklist_items (category_id, parent_id, name, proposed, verified, sort_order, proposed_by, verified_by)\n                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -16,12 +16,14 @@
         "Text",
         "Bool",
         "Bool",
-        "Int4"
+        "Int4",
+        "Text",
+        "Text"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "466e88e8b7417e4894d787144fd526170b22cb1b32203f9decf071629e17f49a"
+  "hash": "96b45ee84fb973225c704af042d0d2269b2d3e1082d1718459c342ab0eb3b9a5"
 }

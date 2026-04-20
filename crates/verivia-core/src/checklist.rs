@@ -82,9 +82,9 @@ pub async fn save_category_checklist(
     for (i, item) in items.iter().enumerate() {
         // Insert parent item
         let parent_id = sqlx::query_scalar!(
-            "INSERT INTO checklist_items (category_id, parent_id, name, proposed, verified, sort_order)
-             VALUES ($1, NULL, $2, $3, $4, $5) RETURNING id",
-            category_id, item.name, item.proposed, item.verified, i as i32
+            "INSERT INTO checklist_items (category_id, parent_id, name, proposed, verified, sort_order, proposed_by, verified_by)
+             VALUES ($1, NULL, $2, $3, $4, $5, $6, $7) RETURNING id",
+            category_id, item.name, item.proposed, item.verified, i as i32, item.proposed_by, item.verified_by
         ).fetch_one(&mut *tx).await?;
 
         // Insert parent notes
@@ -98,9 +98,9 @@ pub async fn save_category_checklist(
         // Insert subtasks
         for (j, sub) in item.sub_tasks.iter().enumerate() {
             let sub_id = sqlx::query_scalar!(
-                "INSERT INTO checklist_items (category_id, parent_id, name, proposed, verified, sort_order)
-                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-                category_id, parent_id, sub.name, sub.proposed, sub.verified, j as i32
+                "INSERT INTO checklist_items (category_id, parent_id, name, proposed, verified, sort_order, proposed_by, verified_by)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+                category_id, parent_id, sub.name, sub.proposed, sub.verified, j as i32, sub.proposed_by, sub.verified_by
             ).fetch_one(&mut *tx).await?;
 
             // Insert subtask notes

@@ -262,9 +262,9 @@ export default function ComplexChecklistModal({
 
       doc.setFontSize(10);
 
-      // "Verificat de" – negru
+      // "Generat de" – negru
       doc.setTextColor(0);
-      doc.text(`Verificat de: ${userName || "_________"}`, left, pageH - 17);
+      doc.text(`Generat de: ${userName || "_________"}`, left, pageH - 17);
 
       doc.setTextColor(100);
       doc.text(`Data generării: ${today}`, pageW / 2, pageH - 17, {
@@ -284,7 +284,7 @@ export default function ComplexChecklistModal({
 
     doc.setFont("Roboto", "normal").setFontSize(13).setTextColor(20);
 
-    const addRow = (txt, lvl) => {
+    const addRow = (txt, lvl, attribution) => {
       const startX = left + lvl * 8;
       const maxWidth = pageW - right - startX - iconSize - 2;
       const lines = doc.splitTextToSize(txt, maxWidth);
@@ -305,6 +305,16 @@ export default function ComplexChecklistModal({
         }
         y += lineH;
       });
+
+      if (attribution && (attribution.proposedBy || attribution.verifiedBy)) {
+        const parts = [];
+        if (attribution.proposedBy) parts.push(`Întocmit: ${attribution.proposedBy}`);
+        if (attribution.verifiedBy) parts.push(`Verificat: ${attribution.verifiedBy}`);
+        doc.setFont("Roboto", "normal").setFontSize(10).setTextColor(110);
+        doc.text(parts.join("    "), startX + iconSize + 2, y - lineH + 4.5);
+        doc.setFont("Roboto", "normal").setFontSize(13).setTextColor(20);
+        y += 5;
+      }
     };
 
     let headerDrawnSecondTime = false;
@@ -319,8 +329,11 @@ export default function ComplexChecklistModal({
     };
 
     items.forEach((t) => {
-      addRow(t.name, 0);
-      t.subTasks?.forEach((s) => addRow(s.name, 1));
+      const hasSubs = t.subTasks && t.subTasks.length > 0;
+      addRow(t.name, 0, hasSubs ? null : { proposedBy: t.proposedBy, verifiedBy: t.verifiedBy });
+      t.subTasks?.forEach((s) =>
+        addRow(s.name, 1, { proposedBy: s.proposedBy, verifiedBy: s.verifiedBy })
+      );
     });
 
     /* -------------------- FOOTER PE TOATE PAGINILE -------------------- */
@@ -385,10 +398,12 @@ export default function ComplexChecklistModal({
 
         const addFlags = (t) => ({
           ...t,
-          proposed : typeof t.proposed  === "boolean" ? t.proposed  : false,
-          verified : typeof t.verified  === "boolean" ? t.verified  : false,
-          notes    : Array.isArray(t.notes) ? t.notes : [],
-          subTasks : (t.subTasks ?? []).map(addFlags),
+          proposed   : typeof t.proposed  === "boolean" ? t.proposed  : false,
+          verified   : typeof t.verified  === "boolean" ? t.verified  : false,
+          proposedBy : t.proposedBy ?? null,
+          verifiedBy : t.verifiedBy ?? null,
+          notes      : Array.isArray(t.notes) ? t.notes : [],
+          subTasks   : (t.subTasks ?? []).map(addFlags),
         });
         const fixStatus = (t) => {
           t.status = t.proposed && t.verified ? "complete" : "incomplete";
@@ -453,6 +468,8 @@ export default function ComplexChecklistModal({
     setItems((prev) => {
       const clone = structuredClone(prev);
       const parent = clone[pIdx];
+      const byField = flag === "proposed" ? "proposedBy" : "verifiedBy";
+      const stamp = val ? (userName || null) : null;
 
       const updateStatus = (t) => {
         t.status = t.proposed && t.verified ? "complete" : "incomplete";
@@ -460,18 +477,28 @@ export default function ComplexChecklistModal({
 
       if (sIdx == null) {
         parent[flag] = val;
+        parent[byField] = stamp;
         parent.subTasks.forEach((st) => {
           st[flag] = val;
+          st[byField] = stamp;
           updateStatus(st);
         });
         updateStatus(parent);
       } else {
         const sub = parent.subTasks[sIdx];
         sub[flag] = val;
+        sub[byField] = stamp;
         updateStatus(sub);
 
         parent[flag] = parent.subTasks.length > 0 &&
                        parent.subTasks.every((st) => st[flag]);
+        // Parent attribution: if all subs agree, reflect them; else clear.
+        if (parent[flag]) {
+          const stamps = parent.subTasks.map((st) => st[byField]);
+          parent[byField] = stamps.every((s) => s === stamps[0]) ? stamps[0] : (userName || null);
+        } else {
+          parent[byField] = null;
+        }
         updateStatus(parent);
       }
       return clone;
@@ -549,6 +576,8 @@ const deleteNote = (idx) => {
         status: "incomplete",
         proposed: false,
         verified: false,
+        proposedBy: null,
+        verifiedBy: null,
         subTasks: [],
         notes: [],
       },
@@ -566,6 +595,8 @@ const deleteNote = (idx) => {
         status: "incomplete",
         proposed: false,
         verified: false,
+        proposedBy: null,
+        verifiedBy: null,
         subTasks: [],
         notes: [],
       });

@@ -247,6 +247,20 @@ async fn edit_project(
 
 #[tauri::command]
 async fn delete_project(pool: State<'_, PgPool>, id: i32) -> Result<(), String> {
+    // Guard: refuse to delete while the project's folder still exists on disk.
+    // Otherwise the watcher would recreate an empty project, wiping history.
+    if let Some(path) = verivia_core::projects::get_project_path(&pool, id)
+        .await
+        .map_err(|e| e.to_string())?
+    {
+        if std::path::Path::new(&path).exists() {
+            return Err(format!(
+                "Nu poti sterge proiectul cat timp folderul exista pe disc.\nSterge intai folderul: {}",
+                path
+            ));
+        }
+    }
+
     verivia_core::projects::delete_project(&pool, id)
         .await
         .map_err(|e| e.to_string())
