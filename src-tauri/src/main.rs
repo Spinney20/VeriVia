@@ -67,6 +67,7 @@ fn pick_path(title: &str, folder: bool) -> Option<PathBuf> {
 }
 
 /// Get the projects directory from local config (desktop-only feature for folder sync)
+/// Shows a picker if the active year has no folder configured yet (first-ever launch).
 fn get_projects_dir() -> PathBuf {
     let mut cfg = load_cfg();
     let dir_string = {
@@ -86,6 +87,15 @@ fn get_projects_dir() -> PathBuf {
     };
     save_cfg(&cfg);
     PathBuf::from(dir_string)
+}
+
+/// Silent lookup — returns the folder configured for a specific year, or None.
+/// Never prompts. Used by sync/watcher so we can skip gracefully when the
+/// user hasn't yet chosen a folder for a newly-introduced year.
+fn get_projects_dir_silent(year: &str) -> Option<PathBuf> {
+    let cfg = load_cfg();
+    let s = cfg.get("years")?.get(year)?.get("projects_dir")?.as_str()?.to_string();
+    if s.is_empty() { None } else { Some(PathBuf::from(s)) }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -109,7 +119,11 @@ fn parse_folder_name(name: &str) -> Option<(String, String)> {
 async fn sync_projects_once(pool: &PgPool, year: &str) -> Result<(), String> {
     use std::collections::HashMap;
 
-    let dir = get_projects_dir();
+    // Skip silently if the user hasn't configured a folder for this year yet.
+    let dir = match get_projects_dir_silent(year) {
+        Some(d) => d,
+        None => return Ok(()),
+    };
     let existing = verivia_core::projects::list_projects_light(pool, year)
         .await
         .map_err(|e| e.to_string())?;
@@ -148,8 +162,12 @@ fn spawn_dir_watcher(
     app_handle: AppHandle,
     pool: PgPool,
     year: String,
-) -> notify::Result<notify::RecommendedWatcher> {
-    let dir = get_projects_dir();
+) -> notify::Result<Option<notify::RecommendedWatcher>> {
+    // Bail silently if no folder configured for this year — caller handles it.
+    let dir = match get_projects_dir_silent(&year) {
+        Some(d) => d,
+        None => return Ok(None),
+    };
     let (tx, rx) = std::sync::mpsc::channel();
 
     let mut watcher = notify::recommended_watcher(tx)?;
@@ -171,7 +189,7 @@ fn spawn_dir_watcher(
         }
     });
 
-    Ok(watcher)
+    Ok(Some(watcher))
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -356,10 +374,36 @@ async fn switch_year(
     let shared = app.state::<SharedWatcher>();
     *shared.lock().unwrap() = None;
     let pool_inner: PgPool = pool.inner().clone();
-    if let Ok(w) = spawn_dir_watcher(app.clone(), pool_inner, year) {
+    if let Ok(Some(w)) = spawn_dir_watcher(app.clone(), pool_inner, year) {
         *shared.lock().unwrap() = Some(w);
     }
     Ok(())
+}
+
+/// Silent check — does this year already have a local folder configured?
+#[tauri::command]
+fn year_has_local_folder(year: String) -> bool {
+    get_projects_dir_silent(&year).is_some()
+}
+
+/// Opens the folder picker for the given year, saves the path in local config,
+/// and returns the chosen path. Errors if the user cancels.
+#[tauri::command]
+fn pick_year_folder(year: String) -> Result<String, String> {
+    let chosen = pick_path(&format!("Alege folderul Publice pentru {}", year), true)
+        .ok_or_else(|| "Anulat la alegere folder".to_string())?;
+    let s = chosen.to_string_lossy().into_owned();
+
+    let mut cfg = load_cfg();
+    if !cfg["years"].is_object() {
+        cfg["years"] = json!({});
+    }
+    if !cfg["years"][&year].is_object() {
+        cfg["years"][&year] = json!({});
+    }
+    cfg["years"][&year]["projects_dir"] = Value::String(s.clone());
+    save_cfg(&cfg);
+    Ok(s)
 }
 
 #[tauri::command]
@@ -510,7 +554,7 @@ fn main() {
             });
 
             // Start watcher
-            if let Ok(w) = spawn_dir_watcher(handle.clone(), pool_clone, year) {
+            if let Ok(Some(w)) = spawn_dir_watcher(handle.clone(), pool_clone, year) {
                 let shared = app.state::<SharedWatcher>();
                 *shared.lock().unwrap() = Some(w);
             }
@@ -532,6 +576,8 @@ fn main() {
             get_active_year,
             switch_year,
             add_year,
+            year_has_local_folder,
+            pick_year_folder,
             load_config,
             load_users,
             open_folder,

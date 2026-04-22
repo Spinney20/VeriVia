@@ -15,6 +15,10 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";          // NEW
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined"; // NEW
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline"; // NEW
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import CircularProgress from "@mui/material/CircularProgress";
+import Typography from "@mui/material/Typography";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -62,6 +66,10 @@ export default function ProjectsView() {
     catIdx: null,
   });
 
+  /* ───────────── dialog: folder nou pentru anul X ───────────── */
+  const [newYearDialog, setNewYearDialog] = useState({ open: false, year: "" });
+  const [pickingFolder, setPickingFolder] = useState(false);
+
   /* ───────────── state pentru dialogs existente ───────────── */
   const [showModal, setShowModal] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState("");
@@ -96,12 +104,43 @@ export default function ProjectsView() {
 
 const handleSwitchYear = async (yr) => {
   try {
+    if (IS_TAURI) {
+      const hasFolder = await api.yearHasLocalFolder(yr);
+      if (!hasFolder) {
+        setNewYearDialog({ open: true, year: yr });
+        return; // așteaptă confirmarea utilizatorului
+      }
+    }
     await api.switchYear(yr);
     setCurrentYear(yr);
     fetchDbData();           // re-încarcă proiectele
   } catch (e) {
     console.error("switch_year:", e);
   }
+};
+
+const handleConfirmNewYear = async () => {
+  const yr = newYearDialog.year;
+  setPickingFolder(true);
+  try {
+    await api.pickYearFolder(yr);
+    await api.switchYear(yr);
+    setCurrentYear(yr);
+    setNewYearDialog({ open: false, year: "" });
+    fetchDbData();
+  } catch (e) {
+    // dacă utilizatorul a anulat dialogul de Windows, doar închidem discret
+    if (!String(e).toLowerCase().includes("anulat")) {
+      console.error("pick_year_folder:", e);
+    }
+  } finally {
+    setPickingFolder(false);
+  }
+};
+
+const handleCancelNewYear = () => {
+  if (pickingFolder) return;
+  setNewYearDialog({ open: false, year: "" });
 };
 
 const handleAddYear = async () => {
@@ -848,6 +887,125 @@ const saveChecklist = async (updatedTasks, catKey) => {
   Logout
 </Button>
       </Box>
+
+      {/* ═══════════ Dialog: an nou detectat, alege folder ═══════════ */}
+      <Dialog
+        open={newYearDialog.open}
+        onClose={handleCancelNewYear}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            overflow: "hidden",
+            boxShadow: "0 24px 60px -12px rgba(0,0,0,.35)",
+          },
+        }}
+      >
+        <Box
+          sx={{
+            position: "relative",
+            px: 3.5,
+            pt: 3.5,
+            pb: 2.5,
+            background:
+              "linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #3b82f6 100%)",
+            color: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              width: 52,
+              height: 52,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mb: 1.5,
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            <EventAvailableIcon sx={{ fontSize: 28 }} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: .2 }}>
+            An nou detectat
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: .85, mt: .5 }}>
+            {newYearDialog.year}
+          </Typography>
+        </Box>
+
+        <DialogContent sx={{ px: 3.5, pt: 3, pb: 2 }}>
+          <Typography variant="body1" sx={{ color: "#1f2937", lineHeight: 1.55 }}>
+            Un coleg a adăugat anul <strong>{newYearDialog.year}</strong>.
+            Pentru ca sincronizarea să funcționeze pe acest calculator, alege
+            folderul <em>Publice</em> unde ții proiectele pentru acest an.
+          </Typography>
+
+          <Box
+            sx={{
+              mt: 2.5,
+              p: 1.75,
+              borderRadius: 2,
+              backgroundColor: "#f3f4f6",
+              border: "1px solid #e5e7eb",
+              display: "flex",
+              alignItems: "center",
+              gap: 1.25,
+              color: "#374151",
+            }}
+          >
+            <FolderOpenIcon sx={{ color: "#2563eb" }} />
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              Se va deschide un selector de folder după ce apeși Continuă.
+            </Typography>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3.5, pb: 3, pt: 1, gap: 1 }}>
+          <Button
+            onClick={handleCancelNewYear}
+            disabled={pickingFolder}
+            sx={{
+              color: "#6b7280",
+              textTransform: "none",
+              fontWeight: 500,
+              "&:hover": { backgroundColor: "#f3f4f6" },
+            }}
+          >
+            Anulează
+          </Button>
+          <Button
+            onClick={handleConfirmNewYear}
+            disabled={pickingFolder}
+            variant="contained"
+            startIcon={
+              pickingFolder ? (
+                <CircularProgress size={16} sx={{ color: "#fff" }} />
+              ) : (
+                <FolderOpenIcon />
+              )
+            }
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              px: 2.5,
+              borderRadius: 2,
+              background:
+                "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
+              boxShadow: "0 6px 16px -4px rgba(37,99,235,.5)",
+              "&:hover": {
+                background:
+                  "linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)",
+                boxShadow: "0 8px 20px -4px rgba(37,99,235,.6)",
+              },
+            }}
+          >
+            {pickingFolder ? "Se deschide…" : "Continuă"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }

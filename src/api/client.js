@@ -77,6 +77,8 @@ export const api = {
     switchYear: (year) => call("switch_year", { year }),
     getActiveYear: () => call("get_active_year"),
     addYear: () => call("add_year"),
+    yearHasLocalFolder: (year) => call("year_has_local_folder", { year }),
+    pickYearFolder: (year) => call("pick_year_folder", { year }),
 
     // Config
     loadConfig: () => call("load_config"),
